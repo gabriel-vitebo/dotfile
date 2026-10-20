@@ -1,0 +1,3 @@
+# Base aprovada pelo proprietário na Fase 2.2. Não usar --force/atualizações.
+esbenp.prettier-vscode
+usernamehw.errorlens

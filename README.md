@@ -2,7 +2,7 @@
 
 > Seu ambiente de desenvolvimento, do seu jeito, em qualquer máquina — sem depender do repositório depois da instalação.
 
-**Status:** CLI, bootstrap e `initial dev` limitado a Git, gh, NVM, Node.js e npm implementados (Fase 2.1); demais funcionalidades permanecem planejadas.  
+**Status:** CLI, bootstrap, `initial dev` (2.1/2.2) e `terminal` (3.1) implementados; demais módulos permanecem planejados.
 **Repositório pretendido:** privado, pessoal e versionado no GitHub.  
 **Plataforma inicial:** Ubuntu. Futuramente, macOS e Windows.
 
@@ -29,7 +29,7 @@ A solução deve atender a dois cenários:
 
 ## 2. Interface de comandos planejada
 
-> A tabela descreve a API proposta. `initial dev` e `list` estão disponíveis; os demais módulos continuam planejados.
+> A tabela descreve a API proposta. `initial dev`, `terminal` e `list` estão disponíveis; os demais módulos continuam planejados.
 
 | Comando | Responsabilidade |
 | --- | --- |
@@ -52,7 +52,7 @@ Não haverá perfis `frontend`, `backend`, `fullstack` nem `--work`. O comando *
 
 ### CLI disponível e instalação
 
-Disponíveis: `--help`, `--version`, `list` e `initial dev`. A CLI e o
+Disponíveis: `--help`, `--version`, `list`, `initial dev` e `terminal`. A CLI e o
 bootstrap aceitam Linux e macOS, com Bash 3.2 ou superior. O módulo `initial dev`
 aceita Ubuntu e macOS em x86_64 e ARM64.
 
@@ -68,11 +68,11 @@ config-workplace list
 ```
 
 O bootstrap não instala dependências externas nem acessa a rede. Copia somente
-`bin/config-workplace`, `lib/cli.sh`, `lib/setup.sh` e `modules/initial-dev.sh` para `~/.local/share/config-workplace`.
+a CLI, as bibliotecas de execução, os módulos `initial-dev` e `terminal`, seus adaptadores e manifestos revisados (lista explícita em `install.sh`) para `~/.local/share/config-workplace`.
 O comando em `~/.local/bin/config-workplace` é um lançador que resolve essa
 instalação permanente, sem referências ao clone. O diretório
 `~/.local/state/config-workplace` fica reservado para estado e logs futuros.
-Dotfiles, inventários e credenciais não são copiados.
+Capturas brutas de dotfiles, inventários e credenciais não são copiados; somente os fragmentos aprovados em `manifests/terminal` integram o módulo. Os helpers JavaScript são copiados como texto; o bootstrap continua sem exigir Node.
 
 Se `~/.local/bin` já estiver no PATH, nenhum arquivo de shell será alterado.
 Caso contrário, o instalador apresenta a linha exata e solicita confirmação:
@@ -113,9 +113,9 @@ preservação de arquivos desconhecidos e confirmação/backup/idempotência do 
 Executá-la no macOS com `/bin/bash` verifica o Bash 3.2 fornecido pelo sistema;
 a validação em Ubuntu deve ser feita separadamente com o mesmo comando.
 
-### 2.1. `initial dev` — Fase 2.1 disponível
+### 2.1. `initial dev` — Fases 2.1 e 2.2 disponíveis
 
-Esta etapa implementa somente Git, GitHub CLI, NVM, Node.js LTS e npm.
+A Fase 2.1 fornece Git, GitHub CLI, NVM, Node.js LTS e npm. A Fase 2.2 acrescenta pnpm, VS Code, extensões aprovadas, preferências portáteis e utilitários.
 
 ```bash
 # Revisão somente de leitura, sem sudo, arquivos temporários ou instaladores:
@@ -144,7 +144,9 @@ como ausentes. Nenhuma configuração Git ou credencial é alterada.
   Tools e outras instalações funcionais são mantidos. Homebrew não é instalado
   automaticamente; se necessário, prepare-o conforme https://brew.sh.
 - **Pré-requisitos:** Bash 3.2+, utilitários do sistema, curl e certificados HTTPS.
-  A falta de curl bloqueia o plano; ele não é instalado implicitamente. A consulta
+  curl ausente entra no plano antes dos downloads. Se Node existente precisar de
+  consulta LTS sem curl, ele é preservado com REVIEW; reexecute após a instalação
+  de curl. Outras falhas de consulta mantêm o bloqueio da Fase 2.1. A consulta
   de versões exige rede mesmo em dry-run. Falha na consulta preserva o estado e
   retorna erro, sem declarar compatibilidade que não foi verificada.
 - **Node existente:** compatível significa ter `process.release.lts` e pertencer
@@ -156,7 +158,7 @@ como ausentes. Nenhuma configuração Git ou credencial é alterada.
 - **Node novo:** usa `nvm install --lts` e alias `default = lts/*`. Uma LTS local
   compatível é reutilizada com `nvm use`, sem download. Aliases locais de LTS
   desatualizados exigem revisão. npm vem com Node; não há instalação separada nem
-  pacotes globais. Um `default-packages` do NVM com pacotes configurados bloqueia
+  pacotes globais nessa etapa. O pnpm é instalado separadamente em prefixo próprio. Um `default-packages` do NVM com pacotes configurados bloqueia
   a instalação de Node para evitar instalações globais implícitas.
 - **NVM:** detecta função carregada, `NVM_DIR`, `~/.nvm`, diretório XDG e locais
   usuais do Homebrew. Para caminhos personalizados, exporte `NVM_DIR`. Instalações
@@ -166,13 +168,14 @@ como ausentes. Nenhuma configuração Git ou credencial é alterada.
   oficial a partir dessa cópia local. A confiança é em HTTPS/GitHub; não há
   verificação de assinatura independente. A versão resolvida aparece no relatório.
   A origem Git final aponta ao repositório oficial, sem dependência do temporário.
-- **Shell:** nenhum arquivo de inicialização é editado nesta etapa. Depois de uma
+- **Shell/NVM:** a Fase 2.1 não edita a inicialização do NVM. A Fase 2.2 pode propor
+  o PATH de `~/.local/bin`, com confirmação e backup separados. Depois de uma
   instalação nova, carregue o diretório informado com `export NVM_DIR="$HOME/.nvm"`
   e `. "$NVM_DIR/nvm.sh"`. Para persistir, acrescente essas linhas manualmente ao
   arquivo do seu shell, se ainda não existirem. Use o caminho real em instalações
   personalizadas. Autenticação gh é opcional e explícita: `gh auth login`.
 
-O relatório distingue CHECK, SKIP, PLAN, INSTALL, CONFIGURED, OK, FAIL e MANUAL.
+O relatório distingue CHECK, SKIP, PLAN, INSTALL, CONFIGURED, OK, FAIL, REVIEW, BACKUP e MANUAL.
 Recusa/EOF na confirmação cancela sem alterações e retorna zero. Pré-requisitos
 não atendidos e falhas retornam erro; instalações já concluídas antes de uma
 falha posterior são mantidas, sem rollback de pacotes do sistema.
@@ -194,31 +197,167 @@ Referências: [NVM oficial](https://github.com/nvm-sh/nvm),
 [GitHub CLI no Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md),
 [índice oficial Node](https://nodejs.org/dist/index.tab).
 
-#### Conteúdo futuro de `initial dev`
+#### Fase 2.2: ferramentas, editor e preferências
 
-A lista abaixo descreve a expansão planejada, não o escopo entregue nesta etapa:
+Incluídos: `curl`, `wget`, `unzip`, `jq`, `ripgrep` (`rg`), `fzf`, OpenSSH
+Client, certificados CA e compiladores (`cc`, `c++`, `make`;
+`build-essential` no Ubuntu). Versões funcionais, inclusive utilitários nativos
+do macOS e instalações de outros gerenciadores, são preservadas. APT usa
+`--no-upgrade`; Homebrew desabilita sua atualização automática e upgrade na
+instalação. Dependências que o gerenciador precisar resolver fazem parte da
+instalação autorizada; não há transação/rollback de pacotes do sistema.
+Homebrew nunca é instalado pelo módulo. Command Line Tools ausentes no macOS
+abrem, após aprovação do plano, o instalador interativo `xcode-select --install`;
+a conclusão e a verificação exigem nova execução.
 
+**pnpm:** uma instalação funcional é SKIP, inclusive de npm, Corepack ou brew.
+A sondagem desabilita rede/auto-pin do Corepack e ocorre fora do projeto.
+Para uma nova instalação, consulta metadados oficiais de `pnpm/latest` por HTTPS,
+valida `engines.node` contra o Node atual e fixa essa versão para o plano.
+Requisitos incompatíveis ou não interpretáveis ficam em REVIEW, preservando
+Node e NVM. Se Node ainda será instalado, resolução e confirmação são adiadas
+até ele estar funcional. Instala apenas `pnpm@<versão>` com npm,
+`--engine-strict`, registry oficial e prefixo próprio em
+`~/.local/share/config-workplace-pnpm`. Não usa `corepack enable` nem modifica
+prefixos npm existentes. O lançador permanente em `~/.local/bin/pnpm` usa o
+caminho do Node selecionado. O PATH em Bash/Zsh login é proposto com backup;
+recusar essa preparação cancela a instalação de pnpm sem erro técnico.
+Para shells diferentes, prepare o PATH manualmente. Remover o Node usado pelo
+lançador posteriormente exige reconfiguração manual.
 
-- Git e GitHub CLI (`gh`);
-- NVM e Node.js LTS atual;
-- npm e pnpm compatível;
-- VS Code estável, configurações e extensões essenciais;
-- OpenSSH Client;
-- `curl`, `wget`, `unzip`, `zip`, `build-essential`, certificados;
-- ferramentas úteis como `jq`, `ripgrep` e `fzf`.
+**VS Code:** verifica `code`, o binário interno do aplicativo em `/Applications`
+e `~/Applications`, caminhos usuais Linux e registros APT/Snap/Flatpak.
+Pacote existente sem CLI funcional é REVIEW; não se instala uma segunda cópia.
+Para aplicativo macOS em local personalizado, informe `CW_VSCODE_APP` com o
+caminho absoluto do `.app`. Instalações portáteis fora dos caminhos detectados
+devem expor `code` no PATH antes de executar o módulo. Novas instalações usam
+Homebrew Cask no Mac e o `.deb` estável oficial por HTTPS com APT no Ubuntu.
+CLI interna funcional fora do PATH pode receber um link em `~/.local/bin/code`,
+após confirmação específica, apontando ao aplicativo permanente, nunca ao clone.
+Não substitui um destino já existente. Configurações de instalação remota,
+portátil e perfis nomeados não são importadas automaticamente.
 
-A seleção exata poderá evoluir via manifestos versionados. O NVM **não exige Node.js previamente instalado**. Docker e Java ficam fora do ambiente inicial.
+**Extensões:** `manifests/vscode-extensions.txt` contém somente Prettier
+(`esbenp.prettier-vscode`) e Error Lens (`usernamehw.errorlens`), aprovadas pelo
+proprietário nesta fase. Lista extensões do perfil padrão, compara IDs sem
+sensibilidade a maiúsculas, confirma cada extensão ausente e verifica depois.
+Não usa `--force`, não remove extras nem seleciona/cria perfis. A instalação
+normal do editor pode ter mecanismos próprios de autoatualização, que este
+módulo não modifica. A [classificação do inventário](docs/vscode-base.md) separa
+os demais itens por finalidade; captura não equivale a aprovação.
+
+**Preferências:** o manifesto propõe somente seis chaves portáteis capturadas:
+tamanho de fonte, réguas, tabulação, minimapa, formatação ao salvar e tratamento
+de espaços no diff. Cada inclusão/conflito mostra a mudança e pede confirmação;
+recusa preserva o valor local. Node, já integrante da Fase 2.1, executa o helper
+sem dependências npm para ler JSONC com comentários/vírgulas finais. A edição
+substitui apenas o valor aprovado ou acrescenta a chave ausente, preservando
+comentários e demais chaves. Antes de escrever, cria backup exato em um diretório
+`.config-workplace-*` ao lado de `settings.json`; escreve temporário e renomeia.
+Arquivo alterado durante a revisão, JSONC inválido, chaves duplicadas, links
+simbólicos e destinos dentro do clone são recusados. Há lock por arquivo;
+edição simultânea pelo VS Code ainda deve ser evitada durante a confirmação.
+No macOS usa `~/Library/Application Support/Code/User/settings.json`; Ubuntu
+usa `${XDG_CONFIG_HOME:-~/.config}/Code/User/settings.json`.
+
+`keybindings.json` não foi encontrado na captura e não é criado nem alterado.
+Profiles adicionais, Fish/Fig, temas, caminhos locais, integrações de IA e
+preferências que desabilitam confirmações ficam fora do manifesto. Não há
+mudanças em configurações de projetos/workspaces nem importação de credenciais.
+
+**Plano e reexecução:** `--dry-run` apresenta ambas as fases, extensões e
+conflitos sem gravar arquivos ou instalar. Consultas HTTPS continuam necessárias
+para políticas de versões. Falhas de consulta deixam REVIEW ou bloqueio explícito;
+não autorizam trocar versões. A execução exige confirmação do plano e aprovações
+granulares do editor/PATH. Itens SKIP não pedem confirmação. Itens quebrados
+ficam preservados para reparo manual, sem autorização genérica implícita.
+Instalações concluídas antes de falha posterior permanecem; configurações já
+existentes mantêm backup. Reexecute para revisar o que ainda falta.
+
+```bash
+/bin/bash tests/bootstrap.sh
+/bin/bash tests/initial-dev.sh
+/bin/bash tests/phase-2.2.sh
+./bin/config-workplace initial dev --dry-run
+# Somente quando desejar instalar de verdade e aprovar as mudanças:
+./bin/config-workplace initial dev
+```
+
+As suítes isolam HOME e simulam rede/instaladores; a suíte 2.2 exige Node local
+para testar o parser real, mas nunca instala ferramentas. Validação real em VM
+Ubuntu limpa e Mac, inclusive nova sessão após remover o clone, continua manual.
+O bootstrap inclui os helpers e manifestos aprovados na instalação permanente.
+`zip`, módulos opcionais, importação de profiles e sincronização continuam futuros.
+
+Referências oficiais: [pnpm](https://pnpm.io/installation),
+[VS Code Linux](https://code.visualstudio.com/docs/setup/linux),
+[CLI do VS Code](https://code.visualstudio.com/docs/configure/command-line).
 
 ### 2.2. Módulos opcionais e futuros
 
 - **Java:** SDKMAN!, JDK LTS, Maven/Gradle quando necessários, `JAVA_HOME`, extensões e profile Java do VS Code.
 - **Docker:** Engine, Compose, permissões e verificação do serviço.
-- **Terminal:** Zsh, Oh My Zsh, tema (ex.: Powerlevel10k), plugins, aliases, fontes, Vim e `.vimrc`.
+- **Terminal (Fase 3.1 disponível):** Zsh, Oh My Zsh, tema real `robbyrussell`, plugin `git` e Vim; fontes extras e novas preferências não foram selecionadas.
 - **Bancos e back-end:** PostgreSQL client, DBeaver, Redis CLI, Python/uv, ferramentas de API.
 - **IA:** ferramentas de linha de comando, preferências de agentes e templates MCP sem credenciais.
 - **Aplicativos:** Chrome, Obsidian e outros programas escolhidos pelo usuário.
 
 Adicionar um módulo deve exigir somente criar seu instalador, declarar metadados e testes, documentar e commitar.
+
+### 2.3. `terminal` — Fase 3.1 disponível
+
+```bash
+./bin/config-workplace terminal --dry-run
+./bin/config-workplace terminal
+# Opcional: confirmação específica para chsh, independente da configuração:
+./bin/config-workplace terminal --change-shell
+/bin/bash tests/terminal.sh
+```
+
+A inspeção somente de leitura do Mac confirmou **Oh My Zsh + robbyrussell + git**,
+sem customizações ativas do prompt. O manifesto reproduz PATH em `~/.local/bin`
+e carregamento condicional do NVM/completion. NVM ausente não impede iniciar Zsh
+nem é instalado por este módulo. Não foram encontrados aliases/funções pessoais,
+`.vimrc` ou `.vim`; Vim é detectado/instalado, sem inventar preferências/plugins.
+Veja [evidências e classificação](docs/terminal.md).
+
+Ubuntu usa APT `--no-upgrade`; macOS preserva Zsh/Vim nativos e usa Homebrew
+existente apenas se necessário. Cada instalação exige confirmação. Ferramentas
+funcionais são SKIP com versão; quebradas ficam REVIEW. Oh My Zsh é obtido por
+Git HTTPS oficial, validado com `git fsck` e sintaxe, sem executar seu instalador.
+O commit resolvido aparece no relatório. Frameworks existentes não são atualizados;
+arquivos de tema/plugin ausentes podem ser obtidos separadamente após confirmação
+e diff, sem substituir componentes existentes. Não há plugins externos aprovados.
+A confiança da origem é HTTPS/GitHub, sem verificação de assinatura independente.
+
+`--dry-run` não grava arquivos, não consulta a rede nem executa instaladores.
+Mostra dependências, tema, plugins, conflitos e diferenças propostas. A detecção
+não carrega configurações pessoais: para frameworks/temas/plugins verifica
+arquivos essenciais e sintaxe, não certifica toda execução de código customizado.
+Temas locais ambíguos ficam em REVIEW, sem seleção automática de outro tema.
+
+O fragmento aprovado é copiado para `~/.config/config-workplace-terminal/zshrc`.
+Um bloco único em `${ZDOTDIR:-$HOME}/.zshrc` o carrega antes dos aliases locais,
+que mantêm precedência. Arquivos idênticos são SKIP; diferenças mostram diff e
+pedem aprovação individual, com backup `.config-workplace-backup.*` antes de
+alterar. Links, caminhos no clone e blocos modificados ficam preservados.
+Inicializações com framework/source/eval ou controles de fluxo locais exigem
+integração manual: o módulo não tenta interpretar nem substituir código arbitrário.
+Recusar o fragmento impede criar um bloco que dependa dele. Alterações aprovadas
+anteriormente não são desfeitas quando uma etapa posterior é recusada ou falha.
+
+Oh My Zsh fica em `${ZSH:-~/.oh-my-zsh}`. Diretórios personalizados devem ser
+exportados também nas novas sessões. Nenhum recurso aplicado depende do clone ou
+da CLI; remover ambos preserva o shell. Novas configurações desabilitam a
+atualização automática do Oh My Zsh. Configurações existentes são preservadas.
+Não se instala fonte: robbyrussell usa cores ANSI e caracteres Unicode; a
+aparência final depende da fonte/emulador. Não há configurações específicas de
+macOS importadas para Ubuntu nem Neovim nesta etapa.
+
+A suíte usa HOME isolado, mocks de gerenciadores e fixtures de framework; verifica
+backup, recusa, conflitos, idempotência, sintaxe e nova sessão após excluir clone
+e CLI. Teste real em VM Ubuntu limpa com Oh My Zsh oficial e comparação visual
+continua necessário; os mocks não substituem esse critério de aceitação.
 
 ## 3. Fluxo A — Uso no dia a dia
 
@@ -531,12 +670,13 @@ Containers podem testar partes do processo; troca de shell, serviços e aplicati
 
 ### Fase 2 — Ambiente essencial
 - [x] Implementar `initial dev` limitado à Fase 2.1 (Git, gh, NVM, Node LTS, npm).
-- [ ] Instalar Git, gh, NVM, Node LTS, npm/pnpm e utilitários.
-- [ ] Instalar VS Code e extensões básicas.
+- [x] Implementar instaladores de Git, gh, NVM, Node LTS, npm/pnpm e utilitários.
+- [x] Implementar VS Code, extensões básicas aprovadas e revisão de settings.
 - [x] Detectar versões e manter idempotência no escopo da Fase 2.1.
 - [x] Criar testes simulados do módulo da Fase 2.1.
 
 ### Fase 3 — Configurações pessoais
+- [x] Implementar Fase 3.1: módulo terminal e testes isolados.
 - [ ] Integrar chezmoi.
 - [ ] Versionar Zsh, Oh My Zsh, temas, plugins, Vim e Git.
 - [ ] Implementar `terminal` e importação de profiles do VS Code.

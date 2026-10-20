@@ -1,0 +1,2 @@
+# Plugin integrado ao Oh My Zsh; dependência: Git. Sem plugins externos.
+git

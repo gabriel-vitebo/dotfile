@@ -1,3 +1,8 @@
+. "$CW_ROOT/lib/dev-safety.sh"
+. "$CW_ROOT/lib/dev-tools.sh"
+. "$CW_ROOT/lib/vscode.sh"
+. "$CW_ROOT/platforms/dev-install.sh"
+
 # All detection finishes before confirmation or the first mutation.
 cw_initial_dev() (
     dry=0
@@ -32,7 +37,10 @@ cw_initial_dev() (
             case "$(command -v node)" in "${NVM_DIR:-$HOME/.nvm}"/versions/node/*) ;; *) cw_log INFO 'Node existente fora do NVM; não será migrado automaticamente.' ;; esac
             major=${node_version#v}; major=${major%%.*}
             latest=$(cw_lts_major) || latest=
-            case "$latest" in ''|*[!0-9]*) cw_log MANUAL 'Não foi possível verificar a política LTS; Node preservado.'; blocked=1 ;;
+            case "$latest" in ''|*[!0-9]*)
+                    cw_log MANUAL 'Não foi possível verificar a política LTS; Node preservado.'
+                    if command -v curl >/dev/null 2>&1; then blocked=1
+                    else cw_log REVIEW 'Verificação LTS pendente; instale curl pelo plano e reexecute.'; fi ;;
                 *) if [ "$major" = "$latest" ] && [ -n "$(node -p 'process.release.lts || ""' 2>/dev/null)" ]; then
                        cw_log SKIP "Node $node_version compatível com a major LTS atual ($latest)."
                    elif [ "$approve_node" -eq 1 ]; then actions[${#actions[@]}]=node
@@ -72,7 +80,7 @@ cw_initial_dev() (
         esac
     done
     if [ "${#actions[@]}" -gt 0 ] || command -v node >/dev/null; then
-        if ! command -v curl >/dev/null; then cw_log MANUAL 'curl é pré-requisito; prepare-o manualmente.'; blocked=1; fi
+        if ! command -v curl >/dev/null; then cw_log PLAN 'curl será instalado antes dos downloads; compatibilidade remota poderá exigir nova execução.'; fi
     fi
     for tool in ${actions[@]+"${actions[@]}"}; do
         if [ "$tool" = node ] && [ -z "$reuse_node" ] && [ -f "${NVM_DIR:-$HOME/.nvm}/default-packages" ] && grep -Eq '^[[:space:]]*[^#[:space:]]' "${NVM_DIR:-$HOME/.nvm}/default-packages"; then
@@ -81,14 +89,31 @@ cw_initial_dev() (
         fi
     done
     [ -z "$reuse_node" ] || cw_log PLAN "Reutilizar Node $reuse_node disponível no NVM, sem instalar; configurar alias default."
+    cw_dev_plan
+    ordered=()
+    for tool in ${actions[@]+"${actions[@]}"}; do
+        case "$tool" in dev:curl|dev:ca-certificates) ordered[${#ordered[@]}]="$tool" ;; esac
+    done
+    for tool in ${actions[@]+"${actions[@]}"}; do
+        case "$tool" in dev:curl|dev:ca-certificates) ;; *) ordered[${#ordered[@]}]="$tool" ;; esac
+    done
+    actions=( ${ordered[@]+"${ordered[@]}"} )
     [ "$blocked" -eq 0 ] || return 1
     [ "$dry" -eq 0 ] || { cw_log INFO 'Dry-run: nenhuma alteração executada.'; return 0; }
-    [ "${#actions[@]}" -gt 0 ] || { cw_log OK 'Ambiente já configurado.'; return 0; }
+    [ "${#actions[@]}" -gt 0 ] || {
+        if [ "${review_pending:-0}" -eq 1 ]; then cw_log REVIEW 'Nenhuma alteração automática; resolva as pendências informadas.'
+        else cw_log OK 'Ambiente já configurado.'; fi
+        return 0
+    }
     [ "$cw_os" != ubuntu ] || cw_log INFO 'APT pode solicitar sudo; gh pode configurar o repositório oficial.'
     cw_confirm || { cw_log SKIP 'Operação cancelada; nenhuma alteração.'; return 0; }
     for tool in ${actions[@]+"${actions[@]}"}; do
         cw_log INSTALL "$tool"
         case "$tool" in
+            dev:*) cw_install_tool "${tool#dev:}" || { cw_log FAIL "$tool"; return 1; } ;;
+            vscode) cw_install_vscode || { cw_log FAIL "VS Code"; return 1; } ;;
+            code-cli) cw_code_launcher || return 1 ;;
+            editor) cw_editor_apply || return 1 ;;
             git|gh) cw_package "$tool" || { cw_log FAIL "$tool"; return 1; } ;;
             nvm) cw_install_nvm && cw_load_nvm || { cw_log FAIL NVM; return 1; } ;;
             node)
@@ -108,10 +133,10 @@ cw_initial_dev() (
                 cw_log CONFIGURED 'Alias NVM default = lts/*' 
                 cw_probe node && cw_probe npm || { cw_log FAIL 'Verificação Node/npm'; return 1; } ;;
         esac
-        cw_log OK "$tool verificado"
+        cw_log OK "$tool: etapa encerrada (consulte SKIP/REVIEW para pendências)"
     done
-    cw_log INFO 'NVM: carregue "$NVM_DIR/nvm.sh" no shell, usando o diretório informado abaixo. Nenhum arquivo de inicialização foi alterado.'
+    cw_log INFO 'NVM: carregue "$NVM_DIR/nvm.sh" no shell, usando o diretório informado abaixo. O carregamento do NVM permanece manual; eventuais ajustes de PATH exigem aprovação separada.'
     printf 'NVM_DIR=%s\n' "${NVM_DIR:-$HOME/.nvm}"
     gh auth status >/dev/null 2>&1 || cw_log MANUAL 'Autenticação opcional pendente: execute gh auth login quando desejar.'
-    cw_log OK 'Instalação concluída.'
+    cw_log OK 'Etapas autorizadas encerradas; consulte REVIEW/MANUAL para eventuais pendências.'
 )

@@ -1,5 +1,12 @@
 # Shared CLI interface; compatible with Bash 3.2.
 cw_main() {
+    if [ "${1:-}" = terminal ]; then
+        shift
+        . "$CW_ROOT/lib/setup.sh"
+        . "$CW_ROOT/modules/terminal.sh"
+        cw_terminal "$@"
+        return $?
+    fi
     if [ "${1:-}" = initial ] && [ "${2:-}" = dev ]; then
         shift 2
         . "$CW_ROOT/lib/setup.sh"
@@ -12,10 +19,12 @@ cw_main() {
         --help|help)
             printf '%s\n' 'Uso: config-workplace [--help | --version | list]' \
                 '     config-workplace initial dev [--dry-run] [--approve-node-change]' \
+                '     config-workplace terminal [--dry-run] [--change-shell]' \
                 'CLI pessoal para ambientes de desenvolvimento.' ;;
-        --version) printf '%s\n' 'config-workplace 0.2.1' ;;
-        list) printf '%s\n' 'Disponível: initial dev (Git, gh, NVM, Node LTS, npm)' \
-            'Módulos planejados (ainda indisponíveis): java, docker, terminal, env' ;;
+        --version) printf '%s\n' 'config-workplace 0.2.2' ;;
+        list) printf '%s\n' 'Disponível: terminal (Zsh, Oh My Zsh, robbyrussell, git e Vim)' \
+             'Disponível: initial dev (Git, gh, NVM, Node LTS, npm, pnpm, VS Code, extensões e utilitários)' \
+            'Módulos planejados (ainda indisponíveis): java, docker, env' ;;
         *) printf 'Erro: comando não implementado: %s\n' "$1" >&2; return 2 ;;
     esac
 }

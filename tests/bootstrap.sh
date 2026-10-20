@@ -7,7 +7,7 @@ export HOME="$sandbox/home with spaces"
 export SHELL=/bin/zsh
 unset ZDOTDIR
 mkdir -p "$HOME" "$sandbox/source" "$sandbox/elsewhere"
-cp -R "$root/bin" "$root/lib" "$root/modules" "$root/install.sh" "$sandbox/source/"
+cp -R "$root/bin" "$root/lib" "$root/modules" "$root/platforms" "$root/manifests" "$root/install.sh" "$sandbox/source/"
 source_dir="$sandbox/source"
 export PATH="$HOME/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 checks=0
@@ -15,7 +15,7 @@ pass() { checks=$((checks + 1)); printf 'ok %s - %s\n' "$checks" "$*"; }
 install_cli() { /bin/bash "$source_dir/install.sh" </dev/null > "$sandbox/output" 2>&1; }
 install_cli
 [ -d "$HOME/.local/state/config-workplace" ]
-config-workplace --version | grep -q '0.2.1'
+config-workplace --version | grep -q '0.2.2'
 pass 'instalação isolada e versão'
 (cd "$sandbox/elsewhere" && config-workplace --help && config-workplace list) > "$sandbox/commands"
 grep -q 'indisponíveis' "$sandbox/commands"
@@ -48,7 +48,7 @@ cat >> "$source_dir/lib/cli.sh" <<'FAILURE'
 case "$0" in */.local/share/config-workplace/bin/config-workplace) exit 37 ;; esac
 FAILURE
 if install_cli; then exit 1; fi
-config-workplace --version | grep -q '0.2.1'
+config-workplace --version | grep -q '0.2.2'
 cp "$sandbox/cli.saved" "$source_dir/lib/cli.sh"
 pass 'falha após substituição restaura instalação anterior'
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
@@ -88,7 +88,7 @@ rm -rf "$source_dir"
 pass 'independência após exclusão definitiva da cópia original'
 # Execute the installed module after deleting its source; all tools/network mocked.
 mkdir -p "$sandbox/mock-bin" "$HOME/.nvm"
-for tool in git gh npm; do
+for tool in git gh npm pnpm wget jq rg fzf brew code; do
     printf '#!/bin/bash\necho mock-version\n' > "$sandbox/mock-bin/$tool"
 done
 cat > "$sandbox/mock-bin/node" <<'MOCK'

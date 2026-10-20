@@ -9,6 +9,8 @@ mkdir -p "$HOME"
 CW_ROOT=$root
 . "$root/lib/setup.sh"
 . "$root/modules/initial-dev.sh"
+# Phase 2.1 regression tests isolate the new planning boundary.
+cw_dev_plan() { :; }
 checks=0
 pass() { checks=$((checks + 1)); printf 'ok %s - %s\n' "$checks" "$*"; }
 # Every mutating boundary is mocked; all state stays under the repository.
