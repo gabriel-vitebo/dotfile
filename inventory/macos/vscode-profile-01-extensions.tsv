@@ -1,0 +1,8 @@
+extension	version
+redhat.java	1.55.0
+vscjava.vscode-gradle	3.18.0
+vscjava.vscode-java-debug	0.59.0
+vscjava.vscode-java-dependency	0.27.6
+vscjava.vscode-java-pack	0.31.1
+vscjava.vscode-java-test	0.46.0
+vscjava.vscode-maven	0.45.3

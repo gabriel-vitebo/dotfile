@@ -1,0 +1,4 @@
+# Template derivado de ~/.gitconfig. Preencher localmente antes de usar.
+[user]
+    name = <YOUR_NAME>
+    email = <YOUR_EMAIL>

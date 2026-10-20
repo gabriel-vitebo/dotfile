@@ -1,0 +1,2 @@
+# Preferência encontrada em ~/.zprofile; caminho pessoal normalizado.
+export PATH="$HOME/.local/bin:$PATH"

@@ -1,0 +1,14 @@
+{
+  "default_alias": "22",
+  "installed_versions": [
+    "v11.15.0",
+    "v18.20.8",
+    "v20.19.6",
+    "v22.14.0",
+    "v24.10.0",
+    "v24.11.0",
+    "v24.18.1"
+  ],
+  "default_matching_installed_version": "v22.14.0",
+  "source": "~/.nvm/alias/default and ~/.nvm/versions/node; no runtime executed"
+}

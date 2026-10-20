@@ -1,0 +1,4 @@
+# Fragmento de preferências observado; não substitui um config.toml existente.
+# Disponibilidade do modelo depende da conta e deverá ser revista futuramente.
+model = "gpt-6-astra"
+model_reasoning_effort = "low"
