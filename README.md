@@ -2,7 +2,7 @@
 
 > Seu ambiente de desenvolvimento, do seu jeito, em qualquer máquina — sem depender do repositório depois da instalação.
 
-**Status:** CLI, bootstrap, `initial dev` (2.1/2.2) e `terminal` (3.1) implementados; demais módulos permanecem planejados.
+**Status:** CLI, bootstrap, `initial dev` (2.1/2.2), `terminal` (3.1) e `java` (3.2) implementados; demais módulos permanecem planejados.
 **Repositório pretendido:** privado, pessoal e versionado no GitHub.  
 **Plataforma inicial:** Ubuntu. Futuramente, macOS e Windows.
 
@@ -29,12 +29,12 @@ A solução deve atender a dois cenários:
 
 ## 2. Interface de comandos planejada
 
-> A tabela descreve a API proposta. `initial dev`, `terminal` e `list` estão disponíveis; os demais módulos continuam planejados.
+> A tabela descreve a API proposta. `initial dev`, `terminal`, `java` e `list` estão disponíveis; os demais módulos continuam planejados.
 
 | Comando | Responsabilidade |
 | --- | --- |
 | `config-workplace initial dev` | Instalar o ambiente inicial essencial |
-| `config-workplace java` | Instalar JDK e ferramentas Java; aplicar profile Java do VS Code |
+| `config-workplace java` | Detectar/instalar JDK LTS, Maven e Gradle; extensões Java opcionais |
 | `config-workplace docker` | Instalar e configurar Docker e Compose |
 | `config-workplace terminal` | Instalar e configurar Zsh, Oh My Zsh, tema, plugins e Vim |
 | `config-workplace env` | Preparar variáveis e recuperar segredos de fonte autorizada |
@@ -52,7 +52,7 @@ Não haverá perfis `frontend`, `backend`, `fullstack` nem `--work`. O comando *
 
 ### CLI disponível e instalação
 
-Disponíveis: `--help`, `--version`, `list`, `initial dev` e `terminal`. A CLI e o
+Disponíveis: `--help`, `--version`, `list`, `initial dev`, `terminal` e `java`. A CLI e o
 bootstrap aceitam Linux e macOS, com Bash 3.2 ou superior. O módulo `initial dev`
 aceita Ubuntu e macOS em x86_64 e ARM64.
 
@@ -68,7 +68,7 @@ config-workplace list
 ```
 
 O bootstrap não instala dependências externas nem acessa a rede. Copia somente
-a CLI, as bibliotecas de execução, os módulos `initial-dev` e `terminal`, seus adaptadores e manifestos revisados (lista explícita em `install.sh`) para `~/.local/share/config-workplace`.
+a CLI, as bibliotecas de execução, os módulos `initial-dev`, `terminal` e `java`, seus adaptadores e manifestos revisados (lista explícita em `install.sh`) para `~/.local/share/config-workplace`.
 O comando em `~/.local/bin/config-workplace` é um lançador que resolve essa
 instalação permanente, sem referências ao clone. O diretório
 `~/.local/state/config-workplace` fica reservado para estado e logs futuros.
@@ -287,7 +287,7 @@ As suítes isolam HOME e simulam rede/instaladores; a suíte 2.2 exige Node loca
 para testar o parser real, mas nunca instala ferramentas. Validação real em VM
 Ubuntu limpa e Mac, inclusive nova sessão após remover o clone, continua manual.
 O bootstrap inclui os helpers e manifestos aprovados na instalação permanente.
-`zip`, módulos opcionais, importação de profiles e sincronização continuam futuros.
+`zip` na base, demais módulos opcionais, importação de profiles e sincronização continuam futuros.
 
 Referências oficiais: [pnpm](https://pnpm.io/installation),
 [VS Code Linux](https://code.visualstudio.com/docs/setup/linux),
@@ -295,7 +295,7 @@ Referências oficiais: [pnpm](https://pnpm.io/installation),
 
 ### 2.2. Módulos opcionais e futuros
 
-- **Java:** SDKMAN!, JDK LTS, Maven/Gradle quando necessários, `JAVA_HOME`, extensões e profile Java do VS Code.
+- **Java (Fase 3.2 disponível):** SDKMAN! opcional, JDK LTS, Maven/Gradle e extensões com aprovação individual; preserva `JAVA_HOME` e settings. Importação de profile permanece futura.
 - **Docker:** Engine, Compose, permissões e verificação do serviço.
 - **Terminal (Fase 3.1 disponível):** Zsh, Oh My Zsh, tema real `robbyrussell`, plugin `git` e Vim; fontes extras e novas preferências não foram selecionadas.
 - **Bancos e back-end:** PostgreSQL client, DBeaver, Redis CLI, Python/uv, ferramentas de API.
@@ -358,6 +358,49 @@ A suíte usa HOME isolado, mocks de gerenciadores e fixtures de framework; verif
 backup, recusa, conflitos, idempotência, sintaxe e nova sessão após excluir clone
 e CLI. Teste real em VM Ubuntu limpa com Oh My Zsh oficial e comparação visual
 continua necessário; os mocks não substituem esse critério de aceitação.
+
+### 2.4. `java` — Fase 3.2 disponível
+
+```bash
+./bin/config-workplace java --dry-run
+./bin/config-workplace java
+/bin/bash tests/java.sh
+```
+
+Módulo opcional Ubuntu/macOS (x86_64/ARM64), separado de `initial dev`.
+Detecta Java/javac, JAVA_HOME, SDKMAN!, Maven e Gradle antes de propor instalações.
+Ferramentas funcionais, inclusive antigas e externas ao SDKMAN!, são **SKIP**.
+Instalações quebradas/divergentes ficam **REVIEW**; runtime sem compilador recebe
+proposta de JDK com confirmação específica. Não há atualização automática.
+
+Para um JDK ausente, cruza a última LTS publicada pela Adoptium com os candidatos
+Temurin do catálogo SDKMAN! da plataforma. Maven/Gradle ausentes recebem versões
+estáveis com verificação conservadora de compatibilidade; requisitos desconhecidos
+ou consultas malsucedidas bloqueiam o plano. Versões/distribuição aparecem antes
+da primeira alteração. O dry-run pode consultar HTTPS, mas não grava arquivos,
+carrega SDKMAN!, instala ferramentas ou pede sudo.
+
+SDKMAN! é opcional: instalação somente se necessário, após aprovação do plano
+e confirmação própria. O instalador oficial é validado por sintaxe/formato/origem
+HTTPS, executado localmente com HOME/ZDOTDIR temporários e destino permanente.
+Não há assinatura independente. A versão atual exige Bash 4+ para instalar;
+a CLI e o diagnóstico continuam compatíveis com Bash 3.2. Pré-requisitos ausentes
+são informados, sem instalação automática. Cada SDK exige confirmação própria,
+incluindo criação da primeira seleção `current`; defaults existentes são preservados.
+
+Não altera JAVA_HOME persistente, shell padrão, credenciais, wrappers ou arquivos
+pessoais. A ativação em novas sessões é manual, com as linhas exatas apresentadas
+ao final; carregar SDKMAN! pode definir JAVA_HOME e deve ser uma escolha explícita.
+Ferramentas ficam no diretório permanente SDKMAN!, sem referências ao clone/CLI.
+Nenhum settings/shell existente é editado. Recusa/EOF cancela; falhas parciais
+preservam instalações concluídas e informam a pendência.
+
+VS Code é opcional. Se disponível, lista seis extensões individuais capturadas,
+instala somente as ausentes aprovadas uma a uma e preserva extras/settings/perfil
+ativo. A captura não contém perfil Java aprovado nem caminhos JDK portáteis para
+importar. O pack não é instalado implicitamente. Veja [decisões, evidências,
+limitações e preparação manual](docs/java.md). Testes usam mocks/HOME temporário;
+a aceitação real em Ubuntu/Mac limpos continua pendente.
 
 ## 3. Fluxo A — Uso no dia a dia
 
@@ -677,13 +720,15 @@ Containers podem testar partes do processo; troca de shell, serviços e aplicati
 
 ### Fase 3 — Configurações pessoais
 - [x] Implementar Fase 3.1: módulo terminal e testes isolados.
+- [x] Implementar Fase 3.2: módulo Java opcional e testes isolados.
 - [ ] Integrar chezmoi.
 - [ ] Versionar Zsh, Oh My Zsh, temas, plugins, Vim e Git.
 - [ ] Implementar `terminal` e importação de profiles do VS Code.
 - [ ] Testar exclusão do clone.
 
 ### Fase 4 — Módulos independentes
-- [ ] Implementar `java` e profile Java.
+- [x] Implementar `java` (Fase 3.2).
+- [ ] Importar profile Java aprovado (extensões individuais já disponíveis).
 - [ ] Implementar `docker`.
 - [ ] Preparar `env` com templates e gerenciamento seguro de segredos.
 - [ ] Adicionar ferramentas conforme necessidade.
