@@ -1,8 +1,13 @@
+. "$CW_ROOT/lib/dotfiles.sh"
 # Compare using streams in dry-run: no temporary files, cache or log writes.
 cw_terminal_file() (
     destination=$1
     source_file=$2
     mode=${3:-copy}
+    if cw_df_terminal_link "$destination"; then
+        cw_log SKIP "$destination: link gerenciado; revisar fonte com dotfiles, sem escrita pelo terminal"
+        exit 0
+    fi
     cw_safe_destination "$destination" || exit 0
     [ ! -e "$destination" ] || [ -f "$destination" ] || { cw_log REVIEW "$destination não é arquivo regular"; exit 0; }
     render() {

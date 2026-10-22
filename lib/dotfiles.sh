@@ -24,6 +24,36 @@ cw_df_kind() {
     elif [ -e "$destination" ]; then printf conflict
     else printf absent; fi
 }
+# lstat identity plus content catches equal-byte replacements and chmod during approval.
+# BSD and GNU stat have different interfaces; no readlink -f or GNU-only requirement.
+cw_df_identity() {
+    stat -f '%d:%i:%p:%u:%g:%l:%z:%m:%c' "$1" 2>/dev/null ||
+        stat -c '%d:%i:%f:%u:%g:%h:%s:%Y:%Z' "$1" 2>/dev/null
+}
+cw_df_snapshot() {
+    cw_df_kind
+    if [ -e "$destination" ] || [ -L "$destination" ]; then
+        cw_df_identity "$destination" || return 1
+        if [ -L "$destination" ]; then readlink "$destination"
+        elif [ -f "$destination" ]; then cksum < "$destination"; fi
+    fi
+}
+cw_df_unchanged() {
+    cw_df_safe "${destination%/*}" && cw_df_safe "$source_file" &&
+        [ "$(cw_df_snapshot)" = "$before" ] || {
+        cw_log FAIL 'Destino/caminho mudou durante operação; preservado'; return 1;
+    }
+}
+# Only recognize the exact allowlisted absolute link; relatives remain conflicts.
+cw_df_terminal_link() (
+    home=$(CDPATH= cd -- "$HOME" && pwd -P) || exit 1
+    repo=${CW_DOTFILES_REPO:-${XDG_DATA_HOME:-$home/.local/share}/config-workplace-dotfiles/repository}
+    source_file="$repo/manifests/terminal/zshrc"
+    destination="$home/.config/config-workplace-terminal/zshrc"
+    [ "$1" = "$destination" ] || exit 1
+    cw_df_safe "$source_file" && cw_df_safe "${destination%/*}" || exit 1
+    [ "$(cw_df_kind)" = correct ]
+)
 cw_dotfiles() (
     set -eu
     umask 077
@@ -48,9 +78,16 @@ cw_dotfiles() (
     state=${XDG_STATE_HOME:-$home/.local/state}/config-workplace/dotfiles
     cw_df_safe "$source_file" && cw_df_safe "${destination%/*}" && cw_df_safe "$state" || { cw_log FAIL 'Caminho ou ancestral simbólico não permitido'; exit 1; }
     case "$state/" in "$repo/"*|"$CW_ROOT/"*) cw_log FAIL 'Estado/backups devem ficar fora do repositório'; exit 1 ;; esac
+    for journal in "$state"/operation.*/journal; do
+        [ -f "$journal" ] || continue
+        if [ "$(tail -n 1 "$journal")" != complete ]; then
+            cw_log REVIEW "Journal incompleto preservado; revise antes de continuar: $journal"
+        fi
+    done
     kind=$(cw_df_kind)
+    before=$(cw_df_snapshot) || exit 1
     cw_log "$kind" "terminal-fragment: $destination -> $source_file"
-    if [ -d "$state/lock" ]; then cw_log REVIEW "Operação pendente/lock residual: $state/lock; revise journals antes de remover o lock vazio"; exit 1; fi
+    if [ -e "$state/lock" ] || [ -L "$state/lock" ]; then cw_log REVIEW "Operação pendente/lock residual: $state/lock; revise journals antes de remover o lock vazio"; exit 1; fi
     if [ "$action" = status ]; then [ "$kind" = correct ]; exit $?; fi
     if [ "$action" = link ]; then
         [ -f "$source_file" ] || { cw_log FAIL 'Fonte ausente'; exit 1; }
@@ -68,11 +105,12 @@ cw_dotfiles() (
     [ "$dry" -eq 0 ] || exit 0
     cw_confirm || { cw_log SKIP 'Operação recusada'; exit 0; }
     cw_df_safe "${destination%/*}" && cw_df_safe "$state" && cw_df_safe "$source_file" || exit 1
-    [ "$(cw_df_kind)" = "$kind" ] || { cw_log FAIL 'Destino mudou durante confirmação'; exit 1; }
+    cw_df_unchanged || exit 1
     if [ "$action" = link ]; then [ "$(cksum < "$source_file")" = "$source_sum" ] || exit 1; fi
     mkdir -p "$state" || exit 1
     mkdir "$state/lock" 2>/dev/null || exit 1
     transaction=
+    work=
     cleanup() {
         result=$?
         trap - EXIT
@@ -80,15 +118,17 @@ cw_dotfiles() (
             printf 'incomplete\n' >> "$transaction/journal"
             cw_log REVIEW "Falha: artefatos preservados em $transaction. Recuperação manual; nenhuma restauração destrutiva automática."
         fi
+        if [ -n "$work" ] && [ "$result" -eq 0 ]; then rmdir "$work" || :; fi
         rmdir "$state/lock" || :
         exit "$result"
     }
     trap cleanup EXIT
     trap 'exit 130' INT
     trap 'exit 143' HUP TERM
-    [ "$(cw_df_kind)" = "$kind" ] || exit 1
+    cw_df_unchanged || exit 1
     transaction=$(mktemp -d "$state/operation.XXXXXX") || exit 1
     printf 'action\t%s\nsource\t%s\ndestination\t%s\nbefore\t%s\n' "$action" "$source_file" "$destination" "$kind" > "$transaction/journal"
+    printf 'snapshot\n%s\n' "$before" >> "$transaction/journal"
     if [ "$kind" = identical ]; then
         cp -p "$destination" "$transaction/original" || exit 1
         cmp -s "$destination" "$transaction/original" || exit 1
@@ -98,17 +138,46 @@ cw_dotfiles() (
     fi
     printf 'prepared\n' >> "$transaction/journal"
     cw_df_safe "${destination%/*}" && cw_df_safe "$source_file" || exit 1
-    [ "$(cw_df_kind)" = "$kind" ] || exit 1
+    cw_df_unchanged || exit 1
     if [ "$action" = link ]; then
         [ "$(cksum < "$source_file")" = "$source_sum" ] || exit 1
         mkdir -p "${destination%/*}" || exit 1
+        work=$(mktemp -d "${destination%/*}/.cw-dotfiles.XXXXXX") || exit 1
+        printf 'staging\t%s\n' "$work" >> "$transaction/journal"
+        ln -s "$source_file" "$work/link" || exit 1
+        [ "$(readlink "$work/link")" = "$source_file" ] || exit 1
         if [ "$kind" = identical ]; then
+            # Probe semantics in private staging, never against a personal path.
+            # -T (GNU) / -h (BSD) prevent following a destination symlink to a dir.
+            printf probe > "$work/probe-target"
+            ln -s "$source_file" "$work/probe-link" || exit 1
+            if mv -fT "$work/probe-link" "$work/probe-target" 2>/dev/null; then
+                move_option=-fT
+            elif [ -L "$work/probe-link" ] && mv -fh "$work/probe-link" "$work/probe-target" 2>/dev/null; then
+                move_option=-fh
+            else
+                cw_log FAIL 'Substituição segura indisponível; original preservado'; exit 1
+            fi
+            [ -L "$work/probe-target" ] || exit 1
+            rm "$work/probe-target" || exit 1
+            cw_df_unchanged || exit 1
             cmp -s "$destination" "$transaction/original" || exit 1
-            # Original preserved with permissions before removing the approved copy.
-            rm "$destination" || exit 1
+            [ "$(cksum < "$source_file")" = "$source_sum" ] || exit 1
+            printf 'replacing\n' >> "$transaction/journal"
+            # Same filesystem rename: never unlink the original first.
+            mv "$move_option" "$work/link" "$destination" || exit 1
+        else
+            cw_df_unchanged || exit 1
+            # Do not follow a destination symlink introduced since the check.
+            # GNU -T also refuses real directories; BSD -h has a documented gap.
+            case "$(uname -s)" in
+                Darwin|FreeBSD) ln -sh "$source_file" "$destination" || exit 1 ;;
+                Linux) ln -sT "$source_file" "$destination" || exit 1 ;;
+                *) cw_log FAIL 'Plataforma sem criação de link validada'; exit 1 ;;
+            esac
+            rm "$work/link" || exit 1
         fi
-        # ln without force refuses anything created concurrently at the final path.
-        ln -s "$source_file" "$destination" || exit 1
+        [ -L "$destination" ] && [ "$(readlink "$destination")" = "$source_file" ] || exit 1
     else
         [ -L "$destination" ] && [ "$(readlink "$destination")" = "$source_file" ] || exit 1
         rm "$destination" || exit 1

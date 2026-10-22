@@ -14,14 +14,15 @@ cw_terminal() (
     omz=${ZSH:-$HOME/.oh-my-zsh}
     rc=${ZDOTDIR:-$HOME}/.zshrc
     payload="$HOME/.config/config-workplace-terminal/zshrc"
+    if cw_df_terminal_link "$payload"; then
+        cw_log SKIP 'Fragmento gerenciado por dotfiles; startup, framework, tema e plugins preservados. Integração Workspace Dev pendente da Fase 3.'
+        exit 0
+    fi
     cw_safe_destination "$omz" && cw_safe_destination "$rc" && cw_safe_destination "$payload" || exit 1
-    cw_terminal_theme "$CW_ROOT/manifests/terminal/zshrc" >/dev/null || {
-        cw_log REVIEW 'Tema não identificado no manifesto; confirme antes de instalar.'; exit 1;
-    }
     [ "$(sed '/^#/d; /^$/d' "$CW_ROOT/manifests/terminal/plugins.txt")" = git ] || {
         cw_log REVIEW 'Manifesto de plugins não suportado; revisar antes de instalar.'; exit 1;
     }
-    cw_log CHECK 'Tema aprovado: robbyrussell; Oh My Zsh; plugin git (dependência Git). Sem fontes extras.'
+    cw_log CHECK 'Assets legados: robbyrussell e git; fragmento não seleciona tema/plugins nem inicializa Oh My Zsh.'
     if [ -f "$rc" ]; then
         detected=$(cw_terminal_theme "$rc" || true)
         cw_log CHECK "Tema local: ${detected:-não identificado estaticamente; preservar configuração}"

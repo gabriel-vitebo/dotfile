@@ -370,3 +370,40 @@ Bootstrap isolado: 18 verificações aprovadas. Não houve bootstrap no HOME rea
 Regressões isoladas também aprovadas: terminal (15), initial-dev (25), phase-2.2
 (26) e Java (27), sem alteração desses módulos. Total das suítes legadas: 111
 verificações, além dos cenários da nova suíte. `git diff --check` aprovado.
+
+## 14. Estabilização — Fase 2.1 (2026-10-22)
+
+Esta seção e `docs/dotfiles.md` substituem as recomendações anteriores de
+preservar a definição obrigatória de robbyrussell/git no fragmento. A captura
+histórica não autoriza substituir tema, prompt, plugins ou aliases atuais.
+
+- Link preparado em staging privado no filesystem do destino; backup anterior
+  preservado; rename com sondagem GNU/BSD, sem remover o original previamente.
+- Rechecagem de identidade, metadados e bytes após confirmação e preparação;
+  mudanças detectadas abortam. Journal registra staging e início da troca;
+  falhas/sinais preservam evidências. Journals incompletos são anunciados.
+- Fragmento neutro quanto ao framework, tema e plugins; carga idempotente de
+  NVM/completion e PATH. Startup pessoal não é inspecionado por execução.
+- Terminal reconhece o link válido e adia suas ações com SKIP; o helper não
+  escreve através dele. Fluxo legado sem links permanece, com fragmento neutro.
+- Testes isolados incluem falhas de ln/mv, concorrência de conteúdo/inode,
+  TERM, permissões, conflitos e reexecução; Zsh com preferências pessoais e
+  integração existente; regressões dos comandos existentes.
+
+Limites: rename atômico não é compare-and-swap nem transação durável. O lock
+não controla editores externos; há janela TOCTOU, especialmente se um diretório
+real substituir o alvo sob BSD entre validação e operação. Detecção posterior
+registra falha, sem exclusão/rollback destrutivo. Consulte o contrato para
+recuperação. Testes Bash 3.2/macOS/BSD em sandbox não certificam instalação real
+nem o ramo GNU/Ubuntu. Não houve execução de terminal no ambiente pessoal.
+
+Pendências da Fase 3: separar planejamento de ferramentas e arquivos para que
+terminal possa instalar ferramentas mantendo dotfiles sob responsabilidade única;
+revisar ativação manual do framework para instalações que dependiam do fragmento
+antigo; decidir primitiva de concorrência mais forte, ownership/registro e
+recuperação/materialização. Validar em ambientes descartáveis macOS/Ubuntu.
+Nenhum novo alvo, sync ou desenvolvimento Java/Node/Docker foi iniciado.
+
+Resultado das suítes nesta entrega: dotfiles (10 grupos de cenários), terminal
+(17 verificações), bootstrap (18), initial-dev (25), phase-2.2 (26), Java (27),
+todas aprovadas. `git diff --check` e verificações de sintaxe aprovados.
