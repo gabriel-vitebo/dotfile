@@ -343,19 +343,24 @@ arquivos essenciais e sintaxe, não certifica toda execução de código customi
 Temas locais ambíguos ficam em REVIEW, sem seleção automática de outro tema.
 
 O fragmento aprovado é copiado para `~/.config/config-workplace-terminal/zshrc`.
-Um bloco único em `${ZDOTDIR:-$HOME}/.zshrc` o carrega antes dos aliases locais,
-que mantêm precedência. Arquivos idênticos são SKIP; diferenças mostram diff e
-pedem aprovação individual, com backup `.config-workplace-backup.*` antes de
-alterar. Links, caminhos no clone e blocos modificados ficam preservados.
-Inicializações com framework/source/eval ou controles de fluxo locais exigem
-integração manual: o módulo não tenta interpretar nem substituir código arbitrário.
-Recusar o fragmento impede criar um bloco que dependa dele. Alterações aprovadas
-anteriormente não são desfeitas quando uma etapa posterior é recusada ou falha.
+O bootstrap versionado em `manifests/terminal/bootstrap.zsh` é instalado ao lado
+como `bootstrap.zsh`, com o caminho persistente de Oh My Zsh. Após aprovação,
+um HOME sem `.zshrc` recebe o startup que carrega esse bootstrap: tema
+`robbyrussell`, plugin `git` e atualização automática do framework desabilitada.
+O fragmento neutro continua compatível com dotfiles e não seleciona temas.
 
-Oh My Zsh fica em `${ZSH:-~/.oh-my-zsh}`. Diretórios personalizados devem ser
-exportados também nas novas sessões. Nenhum recurso aplicado depende do clone ou
-da CLI; remover ambos preserva o shell. Novas configurações desabilitam a
-atualização automática do Oh My Zsh. Configurações existentes são preservadas.
+Um `.zshrc` existente é preservado integralmente. O módulo apresenta o diff
+para o startup padrão e pede autorização para salvar uma proposta separada
+(`startup-proposed.zsh`); sua integração deve ocorrer pela fonte dos dotfiles.
+Não executa configurações pessoais para detectar escolhas. Links gerenciados
+são preservados, mas não impedem a instalação de dependências ausentes.
+Cada arquivo proposto exige aprovação; divergências têm diff e backup.
+Recusar o bootstrap impede a criação do startup. Aprovações anteriores não são
+desfeitas quando uma etapa posterior é recusada.
+
+Oh My Zsh fica em `${ZSH:-~/.oh-my-zsh}`; o bootstrap persiste esse caminho,
+inclusive quando personalizado. Os arquivos instalados não dependem do clone
+nem da CLI, e continuam disponíveis após removê-los e reiniciar o terminal.
 Não se instala fonte: robbyrussell usa cores ANSI e caracteres Unicode; a
 aparência final depende da fonte/emulador. Não há configurações específicas de
 macOS importadas para Ubuntu nem Neovim nesta etapa.

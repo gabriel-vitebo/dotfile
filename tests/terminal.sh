@@ -167,9 +167,62 @@ pass 'tema, prompt, aliases, plugins e PATH preservados; OMZ/NVM/completion sem 
     rm "$payload"
     cp "$sandbox/payload-before" "$payload"
 )
-pass 'helper e módulo preservam link gerenciado, fonte e startup sem instalar assets'
+pass 'helper e módulo preservam link gerenciado, fonte e startup'
+# Full bootstrap from an empty HOME, with a functional framework fixture.
+(
+    fixture="$HOME/.oh-my-zsh"
+    export HOME="$sandbox/fresh-home"
+    mkdir -p "$HOME"
+    cw_platform() { cw_os=macos; }
+    git() {
+        case "$1" in
+            --version) echo fixture-git ;;
+            clone) cp -R "$fixture" "$5"
+                printf 'source "$ZSH/themes/$ZSH_THEME.zsh-theme"\nfor plugin in "${plugins[@]}"; do source "$ZSH/plugins/$plugin/$plugin.plugin.zsh"; done\n' > "$5/oh-my-zsh.sh"
+                printf "PROMPT='ready> '\n" > "$5/themes/robbyrussell.zsh-theme"
+                printf "alias gst='git status'\n" > "$5/plugins/git/git.plugin.zsh" ;;
+            -C) [ "$3" != rev-parse ] || echo fixture-commit ;;
+            *) return 1 ;;
+        esac
+    }
+    export ZSH="$HOME/framework with spaces"
+    cw_terminal --dry-run > "$sandbox/fresh-dry"
+    [ ! -e "$HOME/.zshrc" ] && [ ! -e "$HOME/.config" ]
+    printf 's\ns\ns\ns\n' | cw_terminal > "$sandbox/fresh-install"
+    [ -f "$HOME/.zshrc" ]
+    unset ZSH
+    # Reuse the persisted custom directory for detection on subsequent runs.
+    export ZSH="$HOME/framework with spaces"
+    cw_terminal </dev/null > "$sandbox/fresh-repeat"
+    ! grep -q CONFIGURED "$sandbox/fresh-repeat"
+    cp "$HOME/.zshrc" "$sandbox/fresh-before"
+    printf "ZSH_THEME=personal\nplugins=(custom)\n" > "$HOME/.zshrc"
+    cp "$HOME/.zshrc" "$sandbox/configured-before"
+    printf 'n\n' | cw_terminal > "$sandbox/configured-run"
+    cmp "$HOME/.zshrc" "$sandbox/configured-before"
+    grep -q 'ZSH_THEME=personal' "$sandbox/configured-run"
+    cp "$sandbox/fresh-before" "$HOME/.zshrc"
+)
+(
+    export HOME="$sandbox/refused-home"
+    mkdir -p "$HOME"
+    rc="$HOME/.zshrc"
+    bootstrap="$HOME/.config/config-workplace-terminal/bootstrap.zsh"
+    omz="$sandbox/fresh-home/framework with spaces"
+    dry=0
+    printf 'n\n' | cw_terminal_bootstrap > "$sandbox/refused-bootstrap"
+    [ ! -e "$rc" ] && [ ! -e "$bootstrap" ]
+)
+pass 'recusa de bootstrap impede ativação do startup'
+pass 'bootstrap completo em HOME vazio, idempotência e conflito pessoal preservado'
 PATH="$HOME/.local/bin:$PATH" /bin/bash "$CW_ROOT/install.sh" </dev/null > "$sandbox/bootstrap"
 rm -rf "$CW_ROOT"
+for session in 1 2; do
+    HOME="$sandbox/fresh-home" ZDOTDIR="$sandbox/fresh-home" SHELL_SESSIONS_DISABLE=1 zsh -i -c '
+        [[ "$ZSH_THEME" = robbyrussell && "${plugins[*]}" = git && "$PROMPT" = "ready> " && "$aliases[gst]" = "git status" ]]
+    '
+done
+pass 'tema e plugin ativos em duas novas sessões após remover clone'
 "$HOME/.local/bin/config-workplace" terminal --dry-run > "$sandbox/permanent"
 grep -q 'Dry-run' "$sandbox/permanent"
 rm -rf "$HOME/.local/share/config-workplace"

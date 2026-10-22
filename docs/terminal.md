@@ -33,3 +33,20 @@ Validação manual sugerida em VM Ubuntu descartável: executar dry-run, aprovar
 instalação, repetir para verificar SKIP, remover clone e CLI, abrir Zsh e conferir
 `echo $ZSH_THEME`, `alias gst`, `vim --version` e prompt dentro/fora de Git.
 Próxima etapa: concluir essa aceitação real antes de integrar chezmoi/profiles.
+
+## Bootstrap de máquinas novas
+
+`workspace terminal` instala somente dependências ausentes, mediante confirmação.
+O padrão versionado (`manifests/terminal/bootstrap.zsh`) seleciona robbyrussell e
+`git` e inicializa Oh My Zsh. O instalador persiste uma cópia e o caminho do
+framework em `~/.config/config-workplace-terminal/bootstrap.zsh`; o startup de
+`manifests/terminal/startup.zsh` só é criado quando não existe `.zshrc`.
+O fragmento neutro permanece independente e pode continuar ligado aos dotfiles.
+
+Startups existentes não são reescritos: o diff é apresentado e uma proposta
+separada pode ser salva após confirmação para integração pela fonte dos dotfiles.
+A existência de um fragmento gerenciado não impede verificar e instalar assets.
+Os testes isolados cobrem HOME vazio, HOME configurado, recusa, idempotência,
+caminho personalizado com espaços e tema/plugin em novas sessões sem o clone.
+Downloads e gerenciadores são simulados; a aceitação visual com upstream real
+em uma VM continua sendo uma verificação manual.

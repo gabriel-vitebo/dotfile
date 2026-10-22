@@ -14,15 +14,12 @@ cw_terminal() (
     omz=${ZSH:-$HOME/.oh-my-zsh}
     rc=${ZDOTDIR:-$HOME}/.zshrc
     payload="$HOME/.config/config-workplace-terminal/zshrc"
-    if cw_df_terminal_link "$payload"; then
-        cw_log SKIP 'Fragmento gerenciado por dotfiles; startup, framework, tema e plugins preservados. Integração Workspace Dev pendente da Fase 3.'
-        exit 0
-    fi
-    cw_safe_destination "$omz" && cw_safe_destination "$rc" && cw_safe_destination "$payload" || exit 1
+    bootstrap="$HOME/.config/config-workplace-terminal/bootstrap.zsh"
+    cw_safe_destination "$omz" || exit 1
     [ "$(sed '/^#/d; /^$/d' "$CW_ROOT/manifests/terminal/plugins.txt")" = git ] || {
         cw_log REVIEW 'Manifesto de plugins não suportado; revisar antes de instalar.'; exit 1;
     }
-    cw_log CHECK 'Assets legados: robbyrussell e git; fragmento não seleciona tema/plugins nem inicializa Oh My Zsh.'
+    cw_log CHECK 'Padrão do projeto: robbyrussell e git; bootstrap separado do fragmento portátil.'
     if [ -f "$rc" ]; then
         detected=$(cw_terminal_theme "$rc" || true)
         cw_log CHECK "Tema local: ${detected:-não identificado estaticamente; preservar configuração}"
@@ -76,10 +73,7 @@ cw_terminal() (
         cw_terminal_asset_probe "$omz/themes/robbyrussell.zsh-theme" &&
         cw_terminal_asset_probe "$omz/plugins/git/git.plugin.zsh"; }; then
         cw_terminal_file "$payload" "$CW_ROOT/manifests/terminal/zshrc" || exit 1
-        # Refusing the payload must never leave an active dangling startup block.
-        if [ "$dry" -eq 1 ] || cmp -s "$payload" "$CW_ROOT/manifests/terminal/zshrc"; then
-            cw_terminal_file "$rc" '' startup || exit 1
-        fi
+        cw_terminal_bootstrap || exit 1
     else cw_log REVIEW 'Configuração adiada até Zsh/framework/tema/plugin funcionais.'; fi
     if [ "$change_shell" -eq 1 ]; then
         shell_path=$(command -v zsh || true)

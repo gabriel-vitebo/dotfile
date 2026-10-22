@@ -16,6 +16,9 @@ cw_terminal_file() (
                 '[[ ! -r "$HOME/.config/config-workplace-terminal/zshrc" ]] || source "$HOME/.config/config-workplace-terminal/zshrc"' \
                 '# <<< config-workplace terminal <<<'
             [ ! -f "$destination" ] || cat "$destination"
+        elif [ "$mode" = framework ]; then
+            printf 'export ZSH=%q\n' "$omz"
+            cat "$source_file"
         else cat "$source_file"; fi
     }
     if [ "$mode" = startup ] && [ -f "$destination" ]; then
@@ -64,3 +67,31 @@ cw_terminal_file() (
     mv "$work" "$destination" || exit 1
     cw_log CONFIGURED "$destination"
 )
+
+# Existing startup files are never rewritten by the bootstrap. Even arbitrary
+# shell code is treated as data; a separate candidate is offered for review.
+cw_terminal_bootstrap() {
+    local preferred="$CW_ROOT/manifests/terminal/startup.zsh"
+    if [ -e "$rc" ] || [ -L "$rc" ]; then
+        if cmp -s "$rc" "$preferred"; then
+            cw_log SKIP 'Startup padrão já instalado'
+        else
+            cw_log REVIEW "Startup pessoal preservado: $rc. Diferenças para o padrão do projeto:"
+            diff -u "$rc" "$preferred" || [ "$?" -eq 1 ] || return 1
+            cw_log PLAN 'Aprovar salvar startup proposto em arquivo separado para integração manual? O .zshrc pessoal permanece intacto.'
+            if [ "$dry" -eq 1 ] || cw_confirm; then
+                cw_terminal_file "$bootstrap" "$CW_ROOT/manifests/terminal/bootstrap.zsh" framework || return 1
+                cw_terminal_file "$HOME/.config/config-workplace-terminal/startup-proposed.zsh" "$preferred" || return 1
+                cw_log MANUAL 'Revise startup-proposed.zsh e integre pela fonte dos seus dotfiles; tema/plugins existentes preservados.'
+            else cw_log SKIP 'Proposta recusada; startup preservado'; fi
+            return 0
+        fi
+    fi
+    cw_terminal_file "$bootstrap" "$CW_ROOT/manifests/terminal/bootstrap.zsh" framework || return 1
+    # Approval may have been declined. Never activate a missing/divergent payload.
+    if [ "$dry" -eq 1 ] || cmp -s "$bootstrap" <(printf 'export ZSH=%q\n' "$omz"; cat "$CW_ROOT/manifests/terminal/bootstrap.zsh"); then
+        if [ ! -e "$rc" ] && [ ! -L "$rc" ]; then
+            cw_terminal_file "$rc" "$preferred" || return 1
+        fi
+    fi
+}
