@@ -56,12 +56,18 @@ A inicialização do framework pertence ao startup pessoal; uma instalação que
 antes dependia exclusivamente do fragmento para carregar OMZ precisa de revisão
 manual. Não migremos esse comportamento escrevendo no `.zshrc` do usuário.
 
-O helper do terminal reconhece o link absoluto válido e retorna SKIP, sem copiar
-ou escrever na fonte. O módulo terminal, quando esse link está ativo, encerra
-com SKIP antes de instalações, ajustes de startup ou troca de shell. Links
-externos/quebrados continuam protegidos pelas guardas. Sem link gerenciado,
-o fluxo legado de revisão/instalação continua disponível, usando o fragmento
-neutro. Separar instalação de ferramentas da gestão de preferências é Fase 3.
+O helper do terminal reutiliza `cw_df_terminal_link` e retorna SKIP exclusivamente
+para a escrita do fragmento: não copia nem escreve na fonte. O módulo continua
+verificando/instalando ferramentas e oferecendo bootstrap com confirmação.
+Links externos/quebrados continuam conflitos preservados pelas guardas. Sem link
+gerenciado, o fluxo legado de revisão, confirmação e backup permanece disponível.
+
+`initial dev` não escreve no alvo allowlisted. Settings do VS Code, profiles,
+NVM/Node e ferramentas continuam fora da gestão de dotfiles. Não se adicionou
+uma verificação de ownership artificial a esses destinos nem migração de settings.
+Os testes `initial-dev.sh` e `phase-2.2.sh` executam suas operações com o fragmento
+gerenciado ativo e verificam link e fonte intactos; settings externos por symlink
+são recusados tanto no planejamento quanto na aplicação.
 
 ## Backup e recuperação
 
@@ -121,7 +127,8 @@ idempotência, conflitos, links relativos/quebrados, backups/permissões,
 dry-run, unlink, falhas de preparação/substituição, concorrência durante
 confirmação/preparação, TERM, locks residuais e nova execução. A suíte terminal
 verifica Zsh com tema/prompt, aliases/plugins pessoais, integração existente,
-carga repetida sem duplicação e links gerenciados sem instalação ou escrita.
+carga repetida sem duplicação e instalação de ferramentas com links gerenciados
+sem escrita na fonte.
 
 Validação desta fase: Bash 3.2 e utilitários BSD reais no macOS, exclusivamente
 em fixtures. Regressões bootstrap, terminal, initial-dev, phase-2.2 e Java

@@ -1,4 +1,10 @@
 . "$CW_ROOT/lib/dotfiles.sh"
+cw_terminal_render_bootstrap() {
+    local theme
+    theme=$(cw_terminal_preferred_theme) || return 1
+    printf 'export ZSH=%q\n' "$omz"
+    sed "s/__CW_PREFERRED_THEME__/$theme/" "$CW_ROOT/manifests/terminal/bootstrap.zsh"
+}
 # Compare using streams in dry-run: no temporary files, cache or log writes.
 cw_terminal_file() (
     destination=$1
@@ -17,8 +23,7 @@ cw_terminal_file() (
                 '# <<< config-workplace terminal <<<'
             [ ! -f "$destination" ] || cat "$destination"
         elif [ "$mode" = framework ]; then
-            printf 'export ZSH=%q\n' "$omz"
-            cat "$source_file"
+            cw_terminal_render_bootstrap
         else cat "$source_file"; fi
     }
     if [ "$mode" = startup ] && [ -f "$destination" ]; then
@@ -89,9 +94,14 @@ cw_terminal_bootstrap() {
     fi
     cw_terminal_file "$bootstrap" "$CW_ROOT/manifests/terminal/bootstrap.zsh" framework || return 1
     # Approval may have been declined. Never activate a missing/divergent payload.
-    if [ "$dry" -eq 1 ] || cmp -s "$bootstrap" <(printf 'export ZSH=%q\n' "$omz"; cat "$CW_ROOT/manifests/terminal/bootstrap.zsh"); then
+    if [ "$dry" -eq 1 ] || cmp -s "$bootstrap" <(cw_terminal_render_bootstrap); then
         if [ ! -e "$rc" ] && [ ! -L "$rc" ]; then
-            cw_terminal_file "$rc" "$preferred" || return 1
+            if [ "$dry" -eq 1 ] || cw_df_terminal_link "$payload" ||
+                { cw_safe_destination "$payload" && cmp -s "$payload" "$CW_ROOT/manifests/terminal/zshrc"; }; then
+                cw_terminal_file "$rc" "$preferred" || return 1
+            else
+                cw_log REVIEW 'Startup adiado: fragmento ausente, divergente ou em conflito; reexecute após revisão.'
+            fi
         fi
     fi
 }

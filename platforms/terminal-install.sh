@@ -1,6 +1,7 @@
 # Uses the shared detect-before-install package adapter (APT --no-upgrade / brew).
 cw_terminal_install_omz() (
     dir=$1
+    theme=$(cw_terminal_preferred_theme) || exit 1
     state=0; cw_terminal_omz_probe "$dir" || state=$?
     [ "$state" -ne 0 ] || exit 0
     [ "$state" -eq 1 ] || exit 1
@@ -13,7 +14,7 @@ cw_terminal_install_omz() (
     git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$work/omz" || exit 1
     git -C "$work/omz" fsck --no-reflogs || exit 1
     cw_terminal_omz_probe "$work/omz" || exit 1
-    cw_terminal_asset_probe "$work/omz/themes/robbyrussell.zsh-theme" || exit 1
+    cw_terminal_asset_probe "$work/omz/themes/$theme.zsh-theme" || exit 1
     cw_terminal_asset_probe "$work/omz/plugins/git/git.plugin.zsh" || exit 1
     cw_log CHECK "Oh My Zsh commit $(git -C "$work/omz" rev-parse HEAD) (HTTPS oficial; sem assinatura independente)"
     [ ! -e "$dir" ] && [ ! -L "$dir" ] || exit 1

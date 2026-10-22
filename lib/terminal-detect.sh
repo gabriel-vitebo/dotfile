@@ -1,3 +1,14 @@
+# Versioned data, never sourced. Only a single built-in theme name is accepted.
+# Dependencies of a changed preference must be reviewed before committing it.
+cw_terminal_preferred_theme() {
+    local theme
+    theme=$(cat "$CW_ROOT/manifests/terminal/theme.txt") || return 1
+    case "$theme" in ''|random|*[!a-zA-Z0-9_-]*)
+        cw_log REVIEW 'Tema preferido inválido; use um nome explícito de tema interno revisado.' >&2
+        return 1 ;;
+    esac
+    printf '%s\n' "$theme"
+}
 # Read configuration as data. Never source a user's startup files during probing.
 cw_terminal_theme() {
     local file=$1

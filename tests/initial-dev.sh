@@ -9,6 +9,15 @@ mkdir -p "$HOME"
 CW_ROOT=$root
 . "$root/lib/setup.sh"
 . "$root/modules/initial-dev.sh"
+# The only allowlisted dotfile remains unchanged through every legacy operation.
+. "$root/lib/dotfiles.sh"
+export CW_DOTFILES_REPO="$sandbox/permanent repository"
+mkdir -p "$CW_DOTFILES_REPO/manifests/terminal" "$HOME/.config/config-workplace-terminal"
+cp "$root/manifests/terminal/zshrc" "$CW_DOTFILES_REPO/manifests/terminal/zshrc"
+ln -s "$CW_DOTFILES_REPO/manifests/terminal/zshrc" "$HOME/.config/config-workplace-terminal/zshrc"
+cw_df_terminal_link "$HOME/.config/config-workplace-terminal/zshrc"
+printf '# personal startup\n' > "$HOME/.zshrc"
+cp "$HOME/.zshrc" "$sandbox/startup-before"
 # Phase 2.1 regression tests isolate the new planning boundary.
 cw_dev_plan() { :; }
 checks=0
@@ -193,4 +202,8 @@ bad_release=1
 if cw_install_nvm; then exit 1; fi
 [ ! -e "$NVM_DIR" ]
 pass 'NVM: falha de validação impede execução do instalador'
+cw_df_terminal_link "$HOME/.config/config-workplace-terminal/zshrc"
+cmp "$root/manifests/terminal/zshrc" "$CW_DOTFILES_REPO/manifests/terminal/zshrc"
+cmp "$HOME/.zshrc" "$sandbox/startup-before"
+pass 'initial dev e NVM preservam ownership, fonte e startup em todas as operações'
 printf '\n%s verificações concluídas.\n' "$checks"

@@ -215,6 +215,86 @@ pass 'helper e módulo preservam link gerenciado, fonte e startup'
 )
 pass 'recusa de bootstrap impede ativação do startup'
 pass 'bootstrap completo em HOME vazio, idempotência e conflito pessoal preservado'
+# A reviewed built-in preference is data and persists independently of the CLI.
+(
+    export HOME="$sandbox/preferred home"
+    mkdir -p "$HOME"
+    export ZSH="$sandbox/fresh-home/framework with spaces"
+    printf "PROMPT='reviewed> '\n" > "$ZSH/themes/reviewed.zsh-theme"
+    printf 'reviewed\n' > "$CW_ROOT/manifests/terminal/theme.txt"
+    cw_platform() { cw_os=macos; }
+    printf 's\ns\ns\n' | cw_terminal > "$sandbox/preferred-output"
+    ZDOTDIR="$HOME" SHELL_SESSIONS_DISABLE=1 zsh -i -c '[[ "$ZSH_THEME" = reviewed && "$PROMPT" = "reviewed> " ]]'
+    printf '$(touch forbidden)\n' > "$CW_ROOT/manifests/terminal/theme.txt"
+    if cw_terminal --dry-run > "$sandbox/invalid-theme" 2>&1; then exit 1; fi
+    [ ! -e forbidden ]
+    printf 'robbyrussell\n' > "$CW_ROOT/manifests/terminal/theme.txt"
+)
+pass 'preferência explícita versionada, tema alternativo e rejeição de código como dados'
+(
+    export HOME="$sandbox/partial home"
+    mkdir -p "$HOME"
+    export ZSH="$sandbox/fresh-home/framework with spaces"
+    cw_platform() { cw_os=macos; }
+    # Refuse the fragment, approve bootstrap: do not activate an incomplete startup.
+    printf 'n\ns\ns\n' | cw_terminal > "$sandbox/partial-output"
+    [ ! -e "$HOME/.zshrc" ]
+    [ -f "$HOME/.config/config-workplace-terminal/bootstrap.zsh" ]
+    printf 's\ns\n' | cw_terminal > "$sandbox/retry-output"
+    [ -f "$HOME/.zshrc" ]
+)
+pass 'recusa parcial não ativa startup; reexecução conclui configuração'
+(
+    export HOME="$sandbox/failed home"
+    mkdir -p "$HOME"
+    cw_platform() { cw_os=macos; }
+    git() { case "$1" in --version) echo fixture ;; clone) return 1 ;; *) return 1 ;; esac; }
+    if printf 's\n' | cw_terminal > "$sandbox/failed-output"; then exit 1; fi
+    [ ! -e "$HOME/.zshrc" ] && [ ! -e "$HOME/.oh-my-zsh" ]
+)
+pass 'falha de download preserva HOME sem ativar startup'
+(
+    export HOME="$sandbox/managed fresh home"
+    export CW_DOTFILES_REPO="$sandbox/permanent-repository"
+    mkdir -p "$HOME/.config/config-workplace-terminal"
+    ln -s "$CW_DOTFILES_REPO/manifests/terminal/zshrc" "$HOME/.config/config-workplace-terminal/zshrc"
+    export ZSH="$sandbox/fresh-home/framework with spaces"
+    cw_platform() { cw_os=macos; }
+    cw_probe() { if [ "$1" = vim ]; then return 1; else command "$1" --version >/dev/null; fi; }
+    cw_install_tool() { printf '%s\n' "$1" > "$sandbox/managed-install"; }
+    printf 's\ns\ns\n' | cw_terminal > "$sandbox/managed-fresh-output"
+    grep -qx vim "$sandbox/managed-install"
+    [ -L "$HOME/.config/config-workplace-terminal/zshrc" ]
+    cmp "$CW_DOTFILES_REPO/manifests/terminal/zshrc" "$CW_ROOT/manifests/terminal/zshrc"
+    [ -f "$HOME/.zshrc" ]
+)
+pass 'link gerenciado permite instalação independente de ferramenta e bootstrap'
+(
+    export HOME="$sandbox/missing refused home"
+    mkdir -p "$HOME"
+    cw_platform() { cw_os=macos; }
+    cw_probe() { return 1; }
+    cw_install_tool() { exit 99; }
+    cw_terminal_install_omz() { exit 99; }
+    printf 'n\nn\nn\nn\n' | cw_terminal > "$sandbox/missing-refused-output"
+    [ ! -e "$HOME/.zshrc" ] && [ ! -e "$HOME/.config" ] && [ ! -e "$HOME/.oh-my-zsh" ]
+    grep -q 'Configuração adiada' "$sandbox/missing-refused-output"
+)
+pass 'dependências ausentes e instalação recusada não criam configuração'
+(
+    export HOME="$sandbox/foreign fragment home"
+    mkdir -p "$HOME/.config/config-workplace-terminal"
+    export ZSH="$sandbox/fresh-home/framework with spaces"
+    cp "$CW_ROOT/manifests/terminal/zshrc" "$sandbox/foreign-fragment"
+    ln -s "$sandbox/foreign-fragment" "$HOME/.config/config-workplace-terminal/zshrc"
+    cw_platform() { cw_os=macos; }
+    printf 's\ns\n' | cw_terminal > "$sandbox/foreign-fragment-output"
+    [ ! -e "$HOME/.zshrc" ]
+    [ -L "$HOME/.config/config-workplace-terminal/zshrc" ]
+    cmp "$sandbox/foreign-fragment" "$CW_ROOT/manifests/terminal/zshrc"
+    grep -q 'Startup adiado' "$sandbox/foreign-fragment-output"
+)
+pass 'fragmento externo mesmo idêntico permanece conflito sem ativação'
 PATH="$HOME/.local/bin:$PATH" /bin/bash "$CW_ROOT/install.sh" </dev/null > "$sandbox/bootstrap"
 rm -rf "$CW_ROOT"
 for session in 1 2; do
@@ -222,7 +302,10 @@ for session in 1 2; do
         [[ "$ZSH_THEME" = robbyrussell && "${plugins[*]}" = git && "$PROMPT" = "ready> " && "$aliases[gst]" = "git status" ]]
     '
 done
-pass 'tema e plugin ativos em duas novas sessões após remover clone'
+HOME="$sandbox/preferred home" ZDOTDIR="$sandbox/preferred home" SHELL_SESSIONS_DISABLE=1 zsh -i -c '
+    [[ "$ZSH_THEME" = reviewed && "$PROMPT" = "reviewed> " ]]
+'
+pass 'tema padrão e preferência alternativa persistem após remover clone'
 "$HOME/.local/bin/config-workplace" terminal --dry-run > "$sandbox/permanent"
 grep -q 'Dry-run' "$sandbox/permanent"
 rm -rf "$HOME/.local/share/config-workplace"

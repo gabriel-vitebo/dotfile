@@ -407,3 +407,59 @@ Nenhum novo alvo, sync ou desenvolvimento Java/Node/Docker foi iniciado.
 Resultado das suítes nesta entrega: dotfiles (10 grupos de cenários), terminal
 (17 verificações), bootstrap (18), initial-dev (25), phase-2.2 (26), Java (27),
 todas aprovadas. `git diff --check` e verificações de sintaxe aprovados.
+
+
+## 14. Finalização da Fase 3.1 (2026-10-22)
+
+Base efetivamente auditada: `2f049b25e2b756eb065f749e9d82c57ccebaeab0`.
+As pendências da seção 13 descrevem a entrega anterior; esta seção atualiza o
+estado. O checkout local tem remote `gabriel-vitebo/config-worksplace`, embora o
+pedido nomeie `gabriel-vitebo/dotfile`; o HEAD coincide exatamente com a referência.
+Nenhum remote foi alterado e nada foi publicado.
+
+Já implementado na Fase 3: bootstrap separado do fragmento neutro, cópia persistente,
+startup criado somente se ausente, proposta separada para configuração pessoal,
+instalação de ferramentas independente do link gerenciado e proteção do helper
+contra escrita através desse link. A documentação anterior que descrevia SKIP do
+módulo inteiro estava desatualizada.
+
+Nesta finalização: tema explícito em manifesto de dados, com validação conservadora
+e empacotamento; seleção estática local robbyrussell revalidada sem execução;
+ativação de startup bloqueada após recusa/conflito do fragmento; testes adicionais
+de falha parcial, tema alternativo, instalação com ownership ativo e regressões.
+Não foram reescritos módulos ou ampliada a allowlist.
+
+### Auditoria de escritores de initial dev
+
+| Operação | Destinos / proteção existente |
+| --- | --- |
+| VS Code settings | `Code/User/settings.json` específico da plataforma; JSONC por chave, confirmação, backup, rejeição de links/ancestrais; sem migração para dotfiles |
+| Extensões / VS Code | CLI/perfil padrão e instalação do aplicativo; independentes do fragmento |
+| NVM | Diretório próprio; instalador com `PROFILE=/dev/null`, sem editar startup; origem Git persistente |
+| Node | Versões e alias default dentro do NVM, aprovação específica para mudança de versão; não escreve no fragmento |
+| pnpm / code / PATH | Prefixos e lançadores próprios, profile não gerenciado com confirmação e backup, guardas de links; comportamento legado |
+| Git, gh e utilitários | Adaptadores de pacotes; nenhuma escrita no alvo allowlisted |
+
+Nenhuma dessas operações escreve no único dotfile atualmente gerenciado.
+Não se introduziram guardas artificiais em `initial dev`. As suítes de regressão
+mantêm um link reconhecido pelo helper de ownership durante instalações simuladas,
+NVM, edição real de JSONC e profiles temporários, verificando ao final fonte e link.
+O teste de symlink externo de settings agora verifica preservação efetiva dos bytes
+e recusa da aplicação, substituindo uma comparação tautológica anterior.
+
+Pronto no escopo: separação de instalação e dotfiles, bootstrap persistente,
+seleção explícita de tema e regressões isoladas. Integração de startups existentes
+continua manual. Testes nativos Ubuntu/GNU e instalação/aceitação visual em máquinas
+reais permanecem pendentes (Docker local indisponível). Testes não executam nem
+modificam configurações pessoais.
+
+Para planejamento da Fase 4: avaliar sync somente em tarefa própria, ownership
+mais amplo/registro, recuperação/materialização e concorrência mais forte.
+Nenhum desses itens foi iniciado; novos dotfiles, Java, Docker e secrets permanecem
+fora desta entrega. A ausência de validação real deve ser resolvida antes de
+considerar a migração integralmente aceita.
+
+Resultado final: terminal **26**, bootstrap **18**, initial-dev **26**,
+phase-2.2 **27**, Java **27** verificações aprovadas; dotfiles **10** grupos
+aprovados. Bash 3.2.57, Zsh 5.9, sintaxe e `git diff --check` aprovados.
+Java foi executado apenas como regressão existente, sem alterações no módulo.

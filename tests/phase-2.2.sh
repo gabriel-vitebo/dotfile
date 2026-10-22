@@ -9,6 +9,12 @@ mkdir -p "$HOME"
 CW_ROOT=$root
 . "$root/lib/setup.sh"
 . "$root/modules/initial-dev.sh"
+. "$root/lib/dotfiles.sh"
+export CW_DOTFILES_REPO="$sandbox/permanent repository"
+mkdir -p "$CW_DOTFILES_REPO/manifests/terminal" "$HOME/.config/config-workplace-terminal"
+cp "$root/manifests/terminal/zshrc" "$CW_DOTFILES_REPO/manifests/terminal/zshrc"
+ln -s "$CW_DOTFILES_REPO/manifests/terminal/zshrc" "$HOME/.config/config-workplace-terminal/zshrc"
+cw_df_terminal_link "$HOME/.config/config-workplace-terminal/zshrc"
 checks=0
 pass() { checks=$((checks + 1)); printf 'ok %s - %s\n' "$checks" "$*"; }
 real_node=$(command -v node)
@@ -54,9 +60,12 @@ if cw_settings plan; then exit 1; fi
 [ "$(cat "$cw_settings")" = '{bad' ]
 pass 'JSON inválido preservado'
 rm "$cw_settings"
+cp "$sandbox/original" "$sandbox/link-target-before"
 ln -s "$sandbox/original" "$cw_settings"
 if cw_settings plan; then exit 1; fi
-cmp "$sandbox/original" "$sandbox/original"
+if cw_settings apply editor.fontSize stale; then exit 1; fi
+[ -L "$cw_settings" ]
+cmp "$sandbox/original" "$sandbox/link-target-before"
 rm "$cw_settings"
 pass 'symlink de configuração preservado'
 # Extensions: mock executable with persistent installation state and failure injection.
@@ -253,4 +262,7 @@ pass 'CLI ausente: recusa preserva estado e aprovação cria link ao aplicativo'
 )
 pass 'PATH com confirmação, backup, idempotência e pnpm em nova sessão'
 for file in "$root"/lib/*.sh "$root"/platforms/*.sh "$root"/modules/*.sh; do /bin/bash -n "$file"; done
+cw_df_terminal_link "$HOME/.config/config-workplace-terminal/zshrc"
+cmp "$root/manifests/terminal/zshrc" "$CW_DOTFILES_REPO/manifests/terminal/zshrc"
+pass 'editor, settings JSONC, ferramentas e profiles preservam o único alvo gerenciado'
 printf '\n%s verificações concluídas.\n' "$checks"

@@ -37,8 +37,9 @@ Próxima etapa: concluir essa aceitação real antes de integrar chezmoi/profile
 ## Bootstrap de máquinas novas
 
 `workspace terminal` instala somente dependências ausentes, mediante confirmação.
-O padrão versionado (`manifests/terminal/bootstrap.zsh`) seleciona robbyrussell e
-`git` e inicializa Oh My Zsh. O instalador persiste uma cópia e o caminho do
+O tema em `manifests/terminal/theme.txt` e o template
+`manifests/terminal/bootstrap.zsh` selecionam o tema revisado e `git` e inicializam
+Oh My Zsh. O instalador persiste uma cópia e o caminho do
 framework em `~/.config/config-workplace-terminal/bootstrap.zsh`; o startup de
 `manifests/terminal/startup.zsh` só é criado quando não existe `.zshrc`.
 O fragmento neutro permanece independente e pode continuar ligado aos dotfiles.
@@ -50,3 +51,50 @@ Os testes isolados cobrem HOME vazio, HOME configurado, recusa, idempotência,
 caminho personalizado com espaços e tema/plugin em novas sessões sem o clone.
 Downloads e gerenciadores são simulados; a aceitação visual com upstream real
 em uma VM continua sendo uma verificação manual.
+
+## Finalização da Fase 3.1 — 2026-10-22
+
+Auditoria sobre `2f049b25e2b756eb065f749e9d82c57ccebaeab0`, antes das mudanças.
+A leitura local de `.zshrc`, `.zprofile`, customizações OMZ, tema instalado e
+`.local/bin/env` encontrou `ZSH_THEME="robbyrussell"`, plugin `git`, sem override
+correspondente em `custom` e sem reatribuição posterior do prompt nos arquivos
+inspecionados. `.zshenv` e `.zlogin` não estavam presentes. Nenhum desses arquivos
+foi executado. NVM/completion referenciados são código de terceiros e não foram
+executados para deduzir aparência; uma sessão pessoal viva não foi inspecionada.
+Isso confirma a seleção estática atual, não uma nova preferência estética.
+Nenhuma preferência foi extraída de repositórios de terceiros.
+
+`manifests/terminal/theme.txt` torna explícita a seleção atual: `robbyrussell`.
+Para mudar o padrão do proprietário, revise a escolha e suas dependências e
+versione nesse arquivo **um único nome de tema interno do Oh My Zsh**. O parser
+aceita somente letras ASCII, números, `_` e `-`; rejeita `random`, caminhos,
+expansões e código. O manifesto é lido como dados, nunca carregado com source.
+O instalador valida e usa o mesmo nome ao verificar, obter e renderizar o tema.
+Não há descoberta de preferência nem seleção automática pela máquina de destino.
+
+O tema atual não exige fontes ou plugins adicionais além dos componentes já
+previstos; nenhuma dependência nova foi adicionada. Temas externos, plugins ou
+fontes extras exigem revisão e aprovação próprias e não são instalados por esse
+mecanismo. A aprovação de um novo tema deve incluir revisão dessas dependências;
+validar o nome e a sintaxe não certifica a aparência ou a segurança do código.
+
+O manifesto é empacotado com a CLI. O bootstrap instalado contém o nome literal
+e o caminho do framework da máquina de destino, não uma referência ao manifesto
+ou ao clone descartável. Caminhos do Mac não são copiados para outra máquina.
+Modificar o manifesto não altera uma instalação existente automaticamente:
+qualquer atualização da cópia passa por diff/confirmação/backup. `.zshrc` existente,
+temas e plugins instalados são preservados; a integração proposta é manual.
+
+Em HOME novo, a criação de `.zshrc` agora exige bootstrap correspondente e
+fragmento aprovado (cópia idêntica ou link reconhecido pelo ownership existente).
+Recusa do fragmento deixa a configuração parcial sem ativar startup; reexecutar
+permite concluir. Falha no download não publica o framework parcial. O helper
+legado de bloco startup permanece disponível sem mudar seu contrato.
+
+Validação: suítes isoladas em macOS/Bash 3.2/Zsh e utilitários BSD. Incluem HOME
+vazio/personalizado, tema alternativo, OMZ existente, link gerenciado, dependências
+ausentes, repetição, recusa parcial, falha de download, caminhos com espaços,
+novas sessões Zsh e remoção do clone/CLI. Downloads, instalações e APT são mocks.
+Docker local foi consultado apenas para detectar Ubuntu, mas o daemon não estava
+ativo; Linux/GNU nativo não foi executado. Instalação real e aceitação visual em
+macOS/Ubuntu, fonte do emulador e integração de startups antigos seguem manuais.
