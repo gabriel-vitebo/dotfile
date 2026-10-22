@@ -1,3 +1,15 @@
+> **Fase 6 — Git Sync manual (2026-10-22):** disponíveis
+> `workspace dotfiles sync --dry-run`, `sync --status` e `sync` para a origem
+> aprovada `gabriel-vitebo/dotfile`, branch **main**. Preview antes de escrever,
+> commit/push com confirmações separadas, fast-forward remoto confirmado e
+> divergências bloqueadas. [Fluxo e recuperação](docs/dotfiles.md#git-sync-manual--fase-6).
+>
+> **Fase 5 — inicialização e diagnóstico (2026-10-22):** disponíveis
+> `workspace dotfiles init`, `init --dry-run` e `doctor`. O init propõe clone
+> confirmado de `https://github.com/gabriel-vitebo/dotfile.git`, fixado em
+> `e0ebd0226328b9a4551bd344fa8bb1bcc6126401`; doctor é somente leitura.
+> O init não sincroniza nem seleciona branch. A sincronização manual é separada.
+>
 > **Fase 4 — dotfiles (2026-10-22):** `workspace dotfiles list|status|link|unlink`
 > aceita `--all`, `--only terminal|git|vscode` e `--dry-run`. Terminal usa symlink
 > para checkout permanente; Git usa include preservando identidade pessoal;
@@ -10,7 +22,7 @@
 
 # config-workplace
 
-> Seu ambiente de desenvolvimento, do seu jeito, em qualquer máquina — sem depender do repositório depois da instalação.
+> Seu ambiente de desenvolvimento, do seu jeito, em qualquer máquina — sem depender do clone inicial depois da instalação.
 
 **Status:** CLI, bootstrap, `initial dev` (2.1/2.2), `terminal` (3.1) e `java` (3.2) implementados; demais módulos permanecem planejados.
 **Repositório pretendido:** privado, pessoal e versionado no GitHub.  
@@ -62,7 +74,8 @@ Não haverá perfis `frontend`, `backend`, `fullstack` nem `--work`. O comando *
 
 ### CLI disponível e instalação
 
-Disponíveis: `--help`, `--version`, `list`, `initial dev`, `terminal` e `java`. A CLI e o
+Disponíveis: `--help`, `--version`, `list`, `initial dev`, `terminal`, `java` e
+`dotfiles {init|doctor|list|status|link|unlink|sync}` (também via `workspace`). A CLI e o
 bootstrap aceitam Linux e macOS, com Bash 3.2 ou superior. O módulo `initial dev`
 aceita Ubuntu e macOS em x86_64 e ARM64.
 
@@ -83,6 +96,43 @@ O comando em `~/.local/bin/config-workplace` é um lançador que resolve essa
 instalação permanente, sem referências ao clone. O diretório
 `~/.local/state/config-workplace` fica reservado para estado e logs futuros.
 Capturas brutas de dotfiles, inventários e credenciais não são copiados; somente os manifestos e fragmentos aprovados integram a instalação, incluindo `manifests/dotfiles.manifest` e `manifests/git.config`. Os helpers JavaScript são copiados como texto; o bootstrap continua sem exigir Node.
+
+### Inicializar e validar dotfiles
+
+Depois de instalar a CLI, com Git existente e acesso HTTPS à origem aprovada:
+
+```bash
+workspace dotfiles init --dry-run
+workspace dotfiles init                  # confirmação antes de criar diretórios/clonar
+workspace dotfiles link --all --dry-run
+workspace dotfiles link --all            # confirmação separada; VS Code só revisão
+workspace dotfiles doctor                # não corrige problemas
+```
+
+| Diretório | Função | Pode apagar? |
+| --- | --- | --- |
+| Clone inicial | Executar `install.sh` e desenvolver o projeto | Sim, depois da instalação; não deve servir de fonte aos links |
+| `~/.local/share/config-workplace` | Instalação permanente da CLI, substituível pelo bootstrap | A remoção retira os comandos, mas não o checkout dos dotfiles |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/config-workplace-dotfiles/repository` | Checkout permanente independente, fonte dos links/includes | Não enquanto houver configurações vinculadas |
+
+`CW_DOTFILES_REPO` permite outro caminho permanente absoluto e sem ancestrais
+simbólicos. Preserve essa variável nas próximas execuções; não há inferência a
+partir do diretório corrente. Diretórios temporários e caminhos da CLI são recusados.
+O init reutiliza um checkout válido sem atualizar seus arquivos; destinos ocupados,
+origem diferente e validação incompleta são preservados para revisão. Não aplica
+configurações pessoais nem executa scripts do clone. `doctor` retorna 1 para
+pendências, inclusive vínculos ainda não aplicados, e 0 quando as verificações passam.
+
+A origem foi escolhida explicitamente para esta fase. O remote deste checkout
+local é `gabriel-vitebo/config-worksplace`, mas **não é fallback** para o init.
+Acesso remoto e disponibilidade do commit em `gabriel-vitebo/dotfile` não foram
+validados com credenciais reais: falhas de acesso preservam journal e diretório
+parcial. Consulte [validação e recuperação](docs/dotfiles.md).
+
+Testes isolados: `bash tests/dotfiles-init.sh`; regressões em
+`tests/{dotfiles,dotfiles-multi,bootstrap,terminal,initial-dev,phase-2.2,java}.sh`.
+A suíte nova cria HOME descartável em `tests/.phase5.*`, usa Git local e mocks,
+e remove a fixture ao terminar; não instala no HOME pessoal.
 
 Se `~/.local/bin` já estiver no PATH, nenhum arquivo de shell será alterado.
 Caso contrário, o instalador apresenta a linha exata e solicita confirmação:

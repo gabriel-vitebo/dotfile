@@ -36,6 +36,8 @@ cw_main() {
                 '     config-workplace terminal [--dry-run] [--change-shell]' \
                 '     config-workplace java [--dry-run]' \
                 '     workspace dotfiles {list|link|status|unlink} [--all | --only ID] [--dry-run]' \
+                '     workspace dotfiles init [--dry-run] | doctor' \
+                '     workspace dotfiles sync [--dry-run | --status] (origin/main)' \
                 'CLI pessoal para ambientes de desenvolvimento.' ;;
         --version) printf '%s\n' 'config-workplace 0.2.2' ;;
         list) printf '%s\n' 'Disponível: terminal (Zsh, Oh My Zsh, robbyrussell, git e Vim)' \

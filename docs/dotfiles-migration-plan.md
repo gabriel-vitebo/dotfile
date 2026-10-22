@@ -512,3 +512,108 @@ inicialização assistida do checkout e primitivas mais fortes de concorrência.
 A exclusão do checkout permanente não é suportada enquanto links/includes estão
 ativos. Sync, publicação remota, secrets, Java/Docker e novas instalações ficam
 fora desta entrega. Settings completos/perfis VS Code continuam fora da adoção.
+
+## 16. Fase 5 — inicialização assistida e diagnóstico (2026-10-22)
+
+Base auditada: `e0ebd0226328b9a4551bd344fa8bb1bcc6126401`, HEAD local idêntico à
+referência solicitada, árvore inicialmente limpa. Revisados documentação de
+migração/dotfiles/terminal, README, bootstrap, gerenciador, dispatcher, manifestos,
+integração terminal/Git e testes. Mantidos os comandos e políticas da Fase 4:
+terminal por symlink, Git por include, VS Code manual; seleção padrão terminal,
+`--all`, `--only`, dry-run, snapshots, confirmação e recuperação sem rollback.
+
+Entregues `workspace dotfiles init [--dry-run]` e `workspace dotfiles doctor`,
+também via `config-workplace`. A implementação permanece em `lib/dotfiles.sh`, já
+empacotada pela allowlist do bootstrap; nenhuma ampliação de captura foi necessária.
+
+- Origem explicitamente aprovada: `https://github.com/gabriel-vitebo/dotfile.git`;
+  commit fixo igual à base auditada. O remote local `config-worksplace` permanece
+  intacto e não é fallback. Não houve publicação nem clone remoto real.
+- Inicialização independente de CLI/clone inicial, com confirmação antes das
+  mutações, reserva exclusiva, Git isolado de configurações pessoais/hooks,
+  checkout detached do pin e validação estática/objetos. Sem execução de scripts.
+- Reutilização de checkout independente validado sem clonar, atualizar ou apagar
+  edições. Arquivos esperados modificados fora do HEAD geram pendência; fontes
+  desconhecidas, diretórios ocupados, worktrees/alternates e temporários recusados.
+- Doctor agrega problemas de checkout, integridade, vínculos/include, conflitos,
+  links quebrados, estado/backups, journals, locks e ambiente sem reparar nada.
+- Init usa journals `operation.*` e o lock existentes. Falhas/sinais conservam o
+  checkout parcial; SIGKILL pode deixar lock. Recuperação manual documentada,
+  sempre preservando arquivos atuais e alterações posteriores aos backups.
+
+As propostas históricas de `init --from`, materialização/restore, transação global
+e sync nas seções anteriores não são comandos disponíveis. O contrato atual em
+[dotfiles.md](dotfiles.md) prevalece. Clone inicial descartável, CLI permanente e
+checkout permanente são três locais distintos. A remoção do último continua
+quebrando configurações vinculadas; a remoção dos dois primeiros não altera as
+fontes permanentes. O doctor não prova ausência de dependências em código pessoal
+arbitrário, nem valida visualmente tema ou startup.
+
+Validação: suíte `tests/dotfiles-init.sh` (16 grupos) com HOME descartável, mocks de rede e
+Git real local; regressões `dotfiles`, `dotfiles-multi`, `bootstrap`, `terminal`,
+`initial-dev`, `phase-2.2` e `java`. Nenhuma instalação no HOME pessoal. Ambiente
+nativo macOS/BSD, Bash 3.2; detecção/resolução Ubuntu simuladas, não execução nativa
+GNU. Sintaxe e `git diff --check` fazem parte da verificação final.
+
+### Preparação para a Fase 6 — sem avanço automático
+
+1. Validar macOS e Ubuntu em máquinas descartáveis, com aceite de funcionamento
+   real do terminal e Git após exclusão do clone inicial.
+2. Confirmar acesso e disponibilidade do commit na origem aprovada. Definir
+   autenticação explícita: init isola credential helpers e não autentica usuários.
+3. Aprovar escopo de sincronização e política de branch a partir do detached HEAD;
+   definir revisão de mudanças, dirty tree, conflitos, origem e commits mistos.
+4. Decidir registro de ownership, recuperação preservando edições posteriores e
+   limites de concorrência antes de qualquer operação que atualize fontes ativas.
+5. Manter rede, aplicação, commit e push como decisões separadas. Não implementar
+   automação/monitoramento sem solicitação específica.
+
+Limitações remanescentes: concorrência externa sem compare-and-swap/fsync, ausência
+de restore/materialização, verificação estática limitada aos alvos e caminhos
+conhecidos, autenticação remota real e aceitação nativa Ubuntu pendentes. Nenhuma
+sincronização, pull, commit/push automático, configuração VS Code nova ou instalação
+Java/Docker foi adicionada. A Fase 6 não foi iniciada.
+
+Resultado das regressões: dotfiles (10 grupos), dotfiles-multi (16), bootstrap
+(18), terminal (26), initial-dev (26), phase-2.2 (27) e Java (27), todas aprovadas.
+A suíte nova também cobre TERM, hooks bloqueados, journals ausentes, permissões
+de estado, clones parciais e execução de init/doctor com detecção macOS/Ubuntu simulada.
+
+
+## 17. Fase 6 — Git Sync manual (2026-10-22)
+
+Auditoria prévia em [dotfiles-sync-audit.md](dotfiles-sync-audit.md). Fase 5
+confirmada por testes; alterações previamente staged preservadas. O usuário
+aprovou explicitamente a branch `main` na origem já autorizada. Init continua
+fixado e detached; a seleção de main é manual.
+
+Entregues `workspace dotfiles sync`, `sync --dry-run` e `sync --status` na
+biblioteca já empacotada. Preview consulta a origem em armazenamento temporário
+de objetos sem alterar o checkout; aplicação usa somente o checkout permanente.
+Commits e push têm aprovações separadas; atualizações remotas são fast-forward
+confirmados. Divergências, staging preexistente, configurações Git não aprovadas,
+commits mistos/merges, arquivos não permitidos e conteúdo suspeito bloqueiam.
+Revisão inclui blobs intermediários, não apenas o diff final. Não há hooks,
+filtros, force push, reset, clean, scripts recebidos ou importação de HOME.
+
+Lock/journal/backups privados preservam estado para recuperação manual, inclusive
+falhas de commit/push. Não existe rollback destrutivo. Fontes vinculadas continuam
+ativas; atualizar o checkout pode mudar comportamento de terminal/Git, efeito
+explicitamente apresentado. Settings pessoais permanecem separados.
+
+O contrato em [dotfiles.md](dotfiles.md#git-sync-manual--fase-6) prevalece sobre
+as flags e fluxos propostos nas seções históricas. O escopo não inclui atualização
+automática, restore, autenticação/configuração de credenciais automática, novos
+programas ou alterações em Java, Docker e instalação de VS Code.
+
+Pendências: execução nativa Ubuntu, teste autenticado real e aceitação em máquinas
+descartáveis. Detector de secrets é conservador e heurístico; revisão humana é
+obrigatória. Concorrência externa e atomicidade entre arquivos continuam limitadas.
+Nenhuma fase seguinte foi iniciada.
+
+Validação final: sync (19 grupos); regressões init (16), dotfiles (10),
+dotfiles-multi (16), bootstrap (18), terminal (26), initial-dev (26),
+phase-2.2 (27) e Java (27): **185 grupos aprovados**. Sintaxe Bash e
+`git diff --check` aprovados. A ordem de fallback de `stat` foi corrigida
+para GNU/BSD, com repetição das suítes de dotfiles após a alteração.
+Todas as operações remotas da suíte de sync foram direcionadas a remotes locais.
