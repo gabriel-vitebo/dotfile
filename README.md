@@ -228,12 +228,14 @@ como ausentes. Nenhuma configuração Git ou credencial é alterada.
   oficial a partir dessa cópia local. A confiança é em HTTPS/GitHub; não há
   verificação de assinatura independente. A versão resolvida aparece no relatório.
   A origem Git final aponta ao repositório oficial, sem dependência do temporário.
-- **Shell/NVM:** a Fase 2.1 não edita a inicialização do NVM. A Fase 2.2 pode propor
-  o PATH de `~/.local/bin`, com confirmação e backup separados. Depois de uma
-  instalação nova, carregue o diretório informado com `export NVM_DIR="$HOME/.nvm"`
-  e `. "$NVM_DIR/nvm.sh"`. Para persistir, acrescente essas linhas manualmente ao
-  arquivo do seu shell, se ainda não existirem. Use o caminho real em instalações
-  personalizadas. Autenticação gh é opcional e explícita: `gh auth login`.
+- **Shell/NVM (Fase 6.1):** `initial dev` propõe integração persistente em
+  `~/.bashrc` para Bash ou `${ZDOTDIR:-$HOME}/.zshrc` para Zsh, conforme `SHELL`.
+  Mostra o arquivo e o bloco exatos e solicita confirmação separada antes de
+  escrever, com backup e preservação das permissões. Respeita `NVM_DIR`, evita
+  duplicação e informa REVIEW para integração não gerenciada ou symlinks.
+  Não depende do clone inicial e não executa `nvm use --lts` no startup.
+  Veja [detalhes, limitações e remoção da integração](docs/initial-dev.md).
+  Autenticação gh é opcional e explícita: `gh auth login`.
 
 O relatório distingue CHECK, SKIP, PLAN, INSTALL, CONFIGURED, OK, FAIL, REVIEW, BACKUP e MANUAL.
 Recusa/EOF na confirmação cancela sem alterações e retorna zero. Pré-requisitos

@@ -89,7 +89,20 @@ cw_initial_dev() (
         fi
     done
     [ -z "$reuse_node" ] || cw_log PLAN "Reutilizar Node $reuse_node disponível no NVM, sem instalar; configurar alias default."
+    desired_default=
+    if command -v nvm >/dev/null 2>&1 && [ -n "${NVM_DIR:-}" ]; then
+        candidate=$(nvm version 'lts/*' 2>/dev/null) || candidate=N/A
+        candidate_major=${candidate#v}; candidate_major=${candidate_major%%.*}
+        if [ -n "${latest:-}" ] && [ "$candidate_major" = "$latest" ] &&
+           [ "$(nvm version default 2>/dev/null)" != "$candidate" ]; then
+            desired_default=$candidate
+            cw_log PLAN "Configurar alias NVM default = $candidate; preservar seleção ativa."
+            actions[${#actions[@]}]=nvm-default
+        fi
+    fi
     cw_dev_plan
+    cw_nvm_shell_plan
+    [ "$nvm_startup_review" -eq 0 ] || review_pending=1
     ordered=()
     for tool in ${actions[@]+"${actions[@]}"}; do
         case "$tool" in dev:curl|dev:ca-certificates) ordered[${#ordered[@]}]="$tool" ;; esac
@@ -101,6 +114,7 @@ cw_initial_dev() (
     [ "$blocked" -eq 0 ] || return 1
     [ "$dry" -eq 0 ] || { cw_log INFO 'Dry-run: nenhuma alteração executada.'; return 0; }
     [ "${#actions[@]}" -gt 0 ] || {
+        cw_nvm_shell_apply || return 1
         if [ "${review_pending:-0}" -eq 1 ]; then cw_log REVIEW 'Nenhuma alteração automática; resolva as pendências informadas.'
         else cw_log OK 'Ambiente já configurado.'; fi
         return 0
@@ -116,6 +130,7 @@ cw_initial_dev() (
             editor) cw_editor_apply || return 1 ;;
             git|gh) cw_package "$tool" || { cw_log FAIL "$tool"; return 1; } ;;
             nvm) cw_install_nvm && cw_load_nvm || { cw_log FAIL NVM; return 1; } ;;
+            nvm-default) nvm alias default "$desired_default" || return 1 ;;
             node)
                 cw_load_nvm || return 1
                 if [ -n "$reuse_node" ]; then
@@ -135,8 +150,7 @@ cw_initial_dev() (
         esac
         cw_log OK "$tool: etapa encerrada (consulte SKIP/REVIEW para pendências)"
     done
-    cw_log INFO 'NVM: carregue "$NVM_DIR/nvm.sh" no shell, usando o diretório informado abaixo. O carregamento do NVM permanece manual; eventuais ajustes de PATH exigem aprovação separada.'
-    printf 'NVM_DIR=%s\n' "${NVM_DIR:-$HOME/.nvm}"
+    cw_nvm_shell_apply || return 1
     gh auth status >/dev/null 2>&1 || cw_log MANUAL 'Autenticação opcional pendente: execute gh auth login quando desejar.'
     cw_log OK 'Etapas autorizadas encerradas; consulte REVIEW/MANUAL para eventuais pendências.'
 )

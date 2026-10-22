@@ -25,7 +25,7 @@ pass() { checks=$((checks + 1)); printf 'ok %s - %s\n' "$checks" "$*"; }
 # Every mutating boundary is mocked; all state stays under the repository.
 reset() {
     : > "$sandbox/mutations"
-    missing= broken= platform=macos lts=22 node_major=22 local_node=N/A
+    missing= broken= platform=macos lts=22 node_major=22 local_node=N/A default_node=
     fail_install=0
     installed='git gh nvm node npm'
 }
@@ -50,7 +50,7 @@ gh() { return 1; }
 nvm() {
     case "$1" in
         --version) echo 0.40.0 ;;
-        version) echo "$local_node" ;;
+        version) if [ "$2" = default ]; then echo "${default_node:-$local_node}"; else echo "$local_node"; fi ;;
         install) echo 'node install' >> "$sandbox/mutations"; installed="$installed node npm" ;;
         use) echo 'node use' >> "$sandbox/mutations"; installed="$installed node npm" ;;
         alias) echo alias >> "$sandbox/mutations" ;;
@@ -98,6 +98,15 @@ run --approve-node-change <<< n
 run --approve-node-change <<< s
 grep -q 'node install' "$sandbox/mutations"
 pass 'Node divergente exige autorização específica e confirmação'
+reset; local_node=v22.1.0; default_node=N/A
+export NVM_DIR="$HOME/existing-nvm"
+run --dry-run </dev/null
+[ ! -s "$sandbox/mutations" ]; grep -q 'Configurar alias NVM default' "$sandbox/output"
+run <<< s
+grep -q alias "$sandbox/mutations"
+if grep -Eq 'node (install|use)' "$sandbox/mutations"; then exit 1; fi
+unset NVM_DIR
+pass 'LTS instalado: corrigir alias aprovado sem instalar ou mudar seleção ativa'
 reset; lts=
 if run --dry-run; then exit 1; fi
 [ ! -s "$sandbox/mutations" ]

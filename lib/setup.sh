@@ -37,6 +37,10 @@ cw_lts_major() {
 cw_load_nvm() {
     if command -v nvm >/dev/null 2>&1; then nvm --version >/dev/null 2>&1 && return 0; return 2; fi
     local dir
+    if [ -n "${NVM_DIR:-}" ] && [ ! -f "$NVM_DIR/nvm.sh" ]; then
+        [ ! -e "$NVM_DIR" ] && [ ! -L "$NVM_DIR" ] && return 1
+        return 2
+    fi
     for dir in "${NVM_DIR:-}" "$HOME/.nvm" "${XDG_CONFIG_HOME:-$HOME/.config}/nvm" /opt/homebrew/opt/nvm /usr/local/opt/nvm; do
         [ -n "$dir" ] && [ -f "$dir/nvm.sh" ] || continue
         export NVM_DIR="$dir"
