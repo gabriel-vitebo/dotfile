@@ -1,7 +1,5 @@
-cw_settings_path() {
-    if [ "$cw_os" = macos ]; then cw_settings="$HOME/Library/Application Support/Code/User/settings.json"
-    else cw_settings="${XDG_CONFIG_HOME:-$HOME/.config}/Code/User/settings.json"; fi
-}
+. "$CW_ROOT/lib/dotfiles.sh"
+cw_settings_path() { cw_settings=$(cw_df_destination vscode); }
 cw_settings() { node "$CW_ROOT/lib/vscode-settings.js" "$1" "$cw_settings" "$CW_ROOT/manifests/vscode-settings.json" "$CW_ROOT" "${2:-}" "${3:-}"; }
 cw_editor_plan() {
     local extension list report pending=0

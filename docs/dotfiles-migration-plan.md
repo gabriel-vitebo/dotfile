@@ -463,3 +463,52 @@ Resultado final: terminal **26**, bootstrap **18**, initial-dev **26**,
 phase-2.2 **27**, Java **27** verificações aprovadas; dotfiles **10** grupos
 aprovados. Bash 3.2.57, Zsh 5.9, sintaxe e `git diff --check` aprovados.
 Java foi executado apenas como regressão existente, sem alterações no módulo.
+
+## 15. Fase 4 — múltiplas configurações (2026-10-22)
+
+Auditoria anterior à implementação: leitura integral do gerenciador e das duas
+referências de dotfiles, módulos terminal/initial-dev, helper de VS Code,
+empacotamento e testes. Confirmado no código o estado da Fase 3.1: ferramentas
+independentes do fragmento, bootstrap persistente separado, tema explícito,
+startup existente preservado e proposta manual. As capturas de Git continham
+somente placeholders; settings portáteis já tinham seis candidatos e parser JSONC
+por chave. Não foi assumida implementação a partir das propostas das seções 5–8.
+
+Implementado nesta fase:
+
+- Manifesto de dados com IDs `terminal`, `git`, `vscode`, fontes, destinos por
+  tokens, macOS/Ubuntu, políticas e descrições; validação estrita contra allowlist
+  no código. Não executa manifesto nem descobre arquivos pessoais.
+- `list`, `--all`, `--only ID`, alias `terminal-fragment` e dry-run; padrão dos
+  comandos legados continua sendo somente terminal. Todos os conflitos do lote
+  são planejados antes de uma confirmação. Snapshots são revalidados depois.
+- Git portátil separado, incluído no início de `.gitconfig` regular. Bytes,
+  comentários, identidade e preferências pessoais posteriores são preservados;
+  unlink remove apenas o prefixo reconhecido, sem rollback de edições posteriores.
+- VS Code registrado como `review-jsonc`, deliberadamente sem symlink ou mesclagem
+  pelo comando dotfiles. Mantida a integração por chave existente e sua dependência
+  de Node somente no fluxo legado. Extensões permanecem inalteradas.
+- Caminhos de destino compartilhados pelos módulos existentes. Bootstrap inclui
+  novos manifestos; links/include apontam para checkout permanente explícito.
+- Journal, backup e lock por arquivo; falha parcial para a aplicação e conserva
+  os sucessos anteriores, sem remoção/rollback destrutivo. Reexecução é idempotente.
+
+A numeração desta entrega segue a solicitação atual; a tabela histórica da seção 8
+usa uma decomposição anterior. [docs/dotfiles.md](dotfiles.md) descreve o contrato
+implementado e prevalece sobre propostas históricas, inclusive unlink com
+materialização e transação global, que **não** foram implementados.
+
+Validação: `tests/dotfiles-multi.sh` adiciona 16 grupos com HOME e checkout
+permanente temporários, incluindo Git real lendo o include, JSONC preservado,
+resolução de caminhos macOS/Ubuntu, ataques ao manifesto, falha parcial e bootstrap
+seguido da exclusão definitiva do clone inicial. Suíte dotfiles original: 10
+grupos. Regressões bootstrap (18), terminal (26), initial-dev (26), phase-2.2 (27)
+e Java (27) aprovadas. Nenhum programa foi instalado no HOME pessoal; instalações
+das suítes usam fixtures/mocks. Bash 3.2/macOS/BSD; sintaxe e diff verificados.
+
+Pendências para avaliar na Fase 5, sem iniciá-la: execução nativa GNU/Ubuntu e
+aceitação real/visual, registro persistente mais amplo, restore/materialização,
+inicialização assistida do checkout e primitivas mais fortes de concorrência.
+A exclusão do checkout permanente não é suportada enquanto links/includes estão
+ativos. Sync, publicação remota, secrets, Java/Docker e novas instalações ficam
+fora desta entrega. Settings completos/perfis VS Code continuam fora da adoção.

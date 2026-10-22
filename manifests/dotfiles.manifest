@@ -1,0 +1,4 @@
+# id|versioned-source|destination-token|operating-systems|policy|description
+terminal|manifests/terminal/zshrc|terminal|macos,ubuntu|symlink|Fragmento neutro do terminal; startup pessoal preservado
+git|manifests/git.config|git|macos,ubuntu|git-include|Preferências portáteis via include; identidade local preservada
+vscode|manifests/vscode-settings.json|vscode|macos,ubuntu|review-jsonc|Preferências candidatas; JSONC permanece na integração existente

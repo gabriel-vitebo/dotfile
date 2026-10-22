@@ -1,5 +1,9 @@
-> **Atualização — dotfiles (2026-10-22):** `workspace dotfiles link|status|unlink`
-> e `link --dry-run` estão disponíveis. Consulte [o guia](docs/dotfiles.md).
+> **Fase 4 — dotfiles (2026-10-22):** `workspace dotfiles list|status|link|unlink`
+> aceita `--all`, `--only terminal|git|vscode` e `--dry-run`. Terminal usa symlink
+> para checkout permanente; Git usa include preservando identidade pessoal;
+> VS Code permanece na integração JSONC existente, sem escrita por dotfiles.
+> Comandos sem seleção preservam o alvo terminal legado. Consulte
+> [comandos, conflitos e recuperação](docs/dotfiles.md).
 > Para configurações vinculadas, a regra de independência do clone exige um
 > checkout permanente separado da instalação da CLI. As referências abaixo
 > a cópias/Chezmoi descrevem o modelo legado ou planejamento anterior.
@@ -78,7 +82,7 @@ a CLI, as bibliotecas de execução, os módulos `initial-dev`, `terminal` e `ja
 O comando em `~/.local/bin/config-workplace` é um lançador que resolve essa
 instalação permanente, sem referências ao clone. O diretório
 `~/.local/state/config-workplace` fica reservado para estado e logs futuros.
-Capturas brutas de dotfiles, inventários e credenciais não são copiados; somente os fragmentos aprovados em `manifests/terminal` integram o módulo. Os helpers JavaScript são copiados como texto; o bootstrap continua sem exigir Node.
+Capturas brutas de dotfiles, inventários e credenciais não são copiados; somente os manifestos e fragmentos aprovados integram a instalação, incluindo `manifests/dotfiles.manifest` e `manifests/git.config`. Os helpers JavaScript são copiados como texto; o bootstrap continua sem exigir Node.
 
 Se `~/.local/bin` já estiver no PATH, nenhum arquivo de shell será alterado.
 Caso contrário, o instalador apresenta a linha exata e solicita confirmação:

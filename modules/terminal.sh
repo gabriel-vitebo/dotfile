@@ -14,7 +14,7 @@ cw_terminal() (
     theme=$(cw_terminal_preferred_theme) || exit 1
     omz=${ZSH:-$HOME/.oh-my-zsh}
     rc=${ZDOTDIR:-$HOME}/.zshrc
-    payload="$HOME/.config/config-workplace-terminal/zshrc"
+    payload=$(cw_df_destination terminal)
     bootstrap="$HOME/.config/config-workplace-terminal/bootstrap.zsh"
     cw_safe_destination "$omz" || exit 1
     [ "$(sed '/^#/d; /^$/d' "$CW_ROOT/manifests/terminal/plugins.txt")" = git ] || {
