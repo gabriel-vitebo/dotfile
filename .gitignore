@@ -1,0 +1,13 @@
+# Local machine data and secrets; tracked files still require review.
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+*.pem
+*.key
+secrets/
+backups/
+*.config-workplace-backup.*
+.DS_Store
+/tests/.*.??????

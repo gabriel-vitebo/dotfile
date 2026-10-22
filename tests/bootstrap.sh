@@ -16,7 +16,13 @@ install_cli() { /bin/bash "$source_dir/install.sh" </dev/null > "$sandbox/output
 install_cli
 [ -d "$HOME/.local/state/config-workplace" ]
 config-workplace --version | grep -q '0.2.2'
-pass 'instalação isolada e versão'
+workspace --version | grep -q '0.2.2'
+workspace dotfiles --help | grep -q 'terminal-fragment'
+printf '#!/bin/bash\nprintf custom-workspace\n' > "$HOME/.local/bin/workspace"
+chmod +x "$HOME/.local/bin/workspace"
+install_cli
+[ "$(workspace)" = custom-workspace ]
+pass 'instalação isolada, versão e workspace preexistente preservado'
 (cd "$sandbox/elsewhere" && config-workplace --help && config-workplace list) > "$sandbox/commands"
 grep -q 'indisponíveis' "$sandbox/commands"
 pass 'execução em outro diretório'

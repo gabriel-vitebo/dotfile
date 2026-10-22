@@ -1,5 +1,12 @@
 # Shared CLI interface; compatible with Bash 3.2.
 cw_main() {
+    if [ "${1:-}" = dotfiles ]; then
+        shift
+        . "$CW_ROOT/lib/setup.sh"
+        . "$CW_ROOT/lib/dotfiles.sh"
+        cw_dotfiles "$@"
+        return $?
+    fi
     if [ "${1:-}" = java ]; then
         shift
         . "$CW_ROOT/lib/setup.sh"
@@ -28,6 +35,7 @@ cw_main() {
                 '     config-workplace initial dev [--dry-run] [--approve-node-change]' \
                 '     config-workplace terminal [--dry-run] [--change-shell]' \
                 '     config-workplace java [--dry-run]' \
+                '     workspace dotfiles {link|status|unlink} [--dry-run]' \
                 'CLI pessoal para ambientes de desenvolvimento.' ;;
         --version) printf '%s\n' 'config-workplace 0.2.2' ;;
         list) printf '%s\n' 'Disponível: terminal (Zsh, Oh My Zsh, robbyrussell, git e Vim)' \

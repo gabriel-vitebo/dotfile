@@ -1,3 +1,9 @@
+> **Atualização — dotfiles (2026-10-22):** `workspace dotfiles link|status|unlink`
+> e `link --dry-run` estão disponíveis. Consulte [o guia](docs/dotfiles.md).
+> Para configurações vinculadas, a regra de independência do clone exige um
+> checkout permanente separado da instalação da CLI. As referências abaixo
+> a cópias/Chezmoi descrevem o modelo legado ou planejamento anterior.
+
 # config-workplace
 
 > Seu ambiente de desenvolvimento, do seu jeito, em qualquer máquina — sem depender do repositório depois da instalação.
