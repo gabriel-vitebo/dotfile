@@ -9,27 +9,96 @@ cw_safe_destination() {
         current=${current%/*}; [ -n "$current" ] || current=/
     done
 }
-cw_local_path() {
-    local profile= line='export PATH="$HOME/.local/bin:$PATH"' backup shell_name=${SHELL:-}
-    case "${shell_name##*/}" in
-        zsh) profile="${ZDOTDIR:-$HOME}/.zprofile" ;;
-        bash)
-            if [ -f "$HOME/.bash_profile" ]; then profile="$HOME/.bash_profile"
-            elif [ -f "$HOME/.bash_login" ]; then profile="$HOME/.bash_login"
-            else profile="$HOME/.profile"; fi ;;
-        *) cw_log REVIEW 'Shell não suportado; configure ~/.local/bin no PATH de novas sessões e reexecute.'; return 1 ;;
+# Probe real startup files, rather than matching shell source text. A clean
+# environment prevents the installer's transient PATH from hiding missing setup.
+# Startup code runs as the user, just as when opening a terminal.
+cw_path_probe() {
+    local mode=$1 result
+    result=$(env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" \
+        SHELL="$path_shell" TERM=dumb PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+        "${path_zdot_env[@]}" "$path_shell" "$mode" '
+        case ":$PATH:" in *":$HOME/.local/bin:"*) printf "\nCW_PATH_OK\n" ;; esac
+        ' </dev/null 2>/dev/null) || return 1
+    case "$result" in *$'\nCW_PATH_OK'*) return 0 ;; *) return 1 ;; esac
+}
+cw_path_append() {
+    local profile=$1 reason=$2 before= backup block
+    # Only personal files: never edit /etc, corporate directories or links.
+    case "$profile" in
+        "$HOME"/*) ;;
+        /etc/*|/usr/*|/opt/*|/var/*|/System/*|/Library/*)
+            cw_log REVIEW "Configuração global/corporativa preservada: $profile"; return 1 ;;
+        *)
+            # ZDOTDIR can live outside HOME, but must be a personal directory.
+            [ -O "${profile%/*}" ] || { cw_log REVIEW "Diretório não pertence ao usuário: ${profile%/*}"; return 1; } ;;
     esac
     cw_safe_destination "$profile" || return 1
-    [ ! -e "$profile" ] || [ -f "$profile" ] || return 1
-    if [ -f "$profile" ] && grep -Fqx "$line" "$profile"; then return 0; fi
-    cw_log PLAN "Adicionar a $profile: $line (necessário em nova sessão login)"
-    cw_confirm || return 1
-    if [ -f "$profile" ]; then
+    [ ! -e "$profile" ] || { [ -f "$profile" ] && [ -O "$profile" ]; } || return 1
+    [ -d "${profile%/*}" ] || { cw_log REVIEW "Diretório ausente: ${profile%/*}"; return 1; }
+    [ ! -f "$profile" ] || before=$(cksum < "$profile")
+    block='# >>> config-workplace PATH >>>
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+# <<< config-workplace PATH <<<'
+    if [ -f "$profile" ] && { grep -Fq '# >>> config-workplace PATH >>>' "$profile" ||
+        grep -Fq '.local/bin' "$profile"; }; then
+        cw_log REVIEW "Referência a PATH existente sem efeito confirmado em $profile; revise o fluxo de startup manualmente."
+        return 1
+    fi
+    cw_log PLAN "$profile: $reason. Acrescentar ao final:"
+    printf '%s\n' "$block"
+    cw_confirm || { cw_log SKIP "Alteração recusada: $profile"; return 1; }
+    cw_safe_destination "$profile" || return 1
+    if [ -n "$before" ]; then
+        [ -f "$profile" ] && [ "$(cksum < "$profile")" = "$before" ] || return 1
         backup=$(mktemp "$profile.config-workplace-backup.XXXXXX") || return 1
         cp -p "$profile" "$backup" || return 1
         cw_log BACKUP "$backup"
+    else
+        [ ! -e "$profile" ] && [ ! -L "$profile" ] || return 1
     fi
-    printf '\n%s\n' "$line" >> "$profile"
+    printf '\n%s\n' "$block" >> "$profile" || return 1
+}
+cw_local_path() {
+    local path_shell=${SHELL:-} shell_name login rc mode failed=0 effective
+    local -a path_zdot_env=()
+    shell_name=${path_shell##*/}
+    case "$shell_name" in bash|zsh) ;; *) cw_log REVIEW 'Shell não suportado; configure ~/.local/bin manualmente.'; return 1 ;; esac
+    [ -x "$path_shell" ] || { cw_log REVIEW "Shell indisponível: $path_shell"; return 1; }
+    if [ "$shell_name" = bash ]; then
+        rc="$HOME/.bashrc"
+        if [ -e "$HOME/.bash_profile" ] || [ -L "$HOME/.bash_profile" ]; then login="$HOME/.bash_profile"
+        elif [ -e "$HOME/.bash_login" ] || [ -L "$HOME/.bash_login" ]; then login="$HOME/.bash_login"
+        else login="$HOME/.profile"; fi
+    else
+        [ -z "${ZDOTDIR+x}" ] || path_zdot_env=("ZDOTDIR=$ZDOTDIR")
+        # .zshenv may select a different ZDOTDIR from the inherited value.
+        effective=$(env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+            "${path_zdot_env[@]}" "$path_shell" -c 'printf "\nCW_ZDOT=%s\n" "${ZDOTDIR:-$HOME}"' </dev/null 2>/dev/null) || return 1
+        effective=${effective##*$'\nCW_ZDOT='}
+        case "$effective" in /*) ;; *) cw_log REVIEW 'ZDOTDIR efetivo não é absoluto; integração manual.'; return 1 ;; esac
+        rc="$effective/.zshrc"; login="$effective/.zprofile"
+    fi
+    cw_log CHECK "Shell $path_shell; login: $login; interativo: $rc. Verificando novas sessões."
+    # Repair interactive startup first: login configurations often already source
+    # it, so reprobe login afterwards to avoid a redundant second modification.
+    if ! cw_path_probe -ic; then
+        cw_path_append "$rc" 'PATH ausente no shell interativo não-login' || failed=1
+    fi
+    # Noninteractive login matters too (bash -lc / zsh -lc).
+    if ! cw_path_probe -lc || ! cw_path_probe -lic; then
+        cw_path_append "$login" 'PATH ausente no shell login' || failed=1
+    fi
+    for mode in -ic -lc -lic; do
+        if ! cw_path_probe "$mode"; then
+            cw_log REVIEW "PATH ainda ausente em $path_shell $mode; revise o startup manualmente."
+            failed=1
+        fi
+    done
+    [ "$failed" -eq 0 ] || return 1
+    cw_log OK 'PATH verificado em novas sessões login e interativas não-login.'
 }
 
 # NVM startup is self-contained: no reference to the CLI payload or source clone.

@@ -135,36 +135,9 @@ fi
 printf 'CLI instalada e validada em %s (%s).\n' "$target" "$platform"
 [ -z "$backup" ] || printf 'Instalação anterior preservada: %s\n' "$backup"
 # PATH configuration is optional and happens only after the install commits.
-path_line='export PATH="$HOME/.local/bin:$PATH"'
-case ":${PATH:-}:" in
-    *":$base/bin:"*) printf '%s\n' 'PATH já configurado; nenhum arquivo alterado.' ;;
-    *)
-        profile=
-        user_shell=${SHELL:-}
-        case "${user_shell##*/}" in
-            zsh) profile="${ZDOTDIR:-$HOME}/.zprofile" ;;
-            bash)
-                if [ -f "$HOME/.bash_profile" ]; then profile="$HOME/.bash_profile"
-                elif [ -f "$HOME/.bash_login" ]; then profile="$HOME/.bash_login"
-                else profile="$HOME/.profile"; fi ;;
-        esac
-        if [ -n "$profile" ] && [ ! -L "$profile" ] && { [ ! -e "$profile" ] || [ -f "$profile" ]; }; then
-            if [ -f "$profile" ] && grep -Fqx "$path_line" "$profile"; then
-                printf 'PATH já registrado em %s. Abra uma nova sessão login.\n' "$profile"
-            else
-                printf 'Alteração proposta: acrescentar ao final de %s:\n%s\n' "$profile" "$path_line"
-                if confirm 'Autoriza essa alteração?'; then
-                    if [ -f "$profile" ]; then
-                        profile_backup=$(mktemp "$profile.config-workplace-backup.XXXXXX")
-                        cp -p "$profile" "$profile_backup"
-                        printf 'Backup do shell: %s\n' "$profile_backup"
-                    fi
-                    printf '\n%s\n' "$path_line" >> "$profile"
-                    printf '%s\n' 'PATH registrado. Abra uma nova sessão login.'
-                fi
-            fi
-        fi
-        printf 'Para usar nesta sessão, execute manualmente:\n%s\n' "$path_line"
-        ;;
-esac
+CW_ROOT=$root
+. "$target/lib/dev-safety.sh"
+cw_log() { printf '%s: %s\n' "$1" "$2"; }
+cw_confirm() { confirm 'Autoriza essa alteração?'; }
+cw_local_path || printf '%s\n' 'PATH não confirmado em todos os modos. Para esta sessão: export PATH="$HOME/.local/bin:$PATH"'
 printf 'Comando: %s\nEstado reservado: %s\n' "$entry" "$base/state/config-workplace"

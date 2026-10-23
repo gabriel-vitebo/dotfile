@@ -97,6 +97,38 @@ instalação permanente, sem referências ao clone. O diretório
 `~/.local/state/config-workplace` fica reservado para estado e logs futuros.
 Capturas brutas de dotfiles, inventários e credenciais não são copiados; somente os manifestos e fragmentos aprovados integram a instalação, incluindo `manifests/dotfiles.manifest` e `manifests/git.config`. Os helpers JavaScript são copiados como texto; o bootstrap continua sem exigir Node.
 
+O PATH é verificado executando os arquivos de startup do shell indicado por
+`SHELL`, em subprocessos com ambiente limpo, nos modos login, login interativo
+e interativo não-login. Essas sondagens executam o código pessoal de startup,
+como uma nova sessão. O PATH da sessão do instalador não comprova persistência.
+No Bash, a precedência é `.bash_profile`, `.bash_login`, `.profile`; terminais
+não-login usam `.bashrc`. No Zsh, são considerados `.zshrc`, `.zprofile` e o
+`ZDOTDIR` efetivo, inclusive quando definido em `.zshenv`.
+
+Configurações equivalentes, como o bloco condicional padrão do Ubuntu, são
+reconhecidas pelo efeito nas sessões. O instalador propõe primeiro a correção
+interativa e verifica novamente o login, evitando integrações redundantes.
+Cada arquivo necessário tem preview, motivo, confirmação e backup do conteúdo
+anterior com permissões preservadas. Apenas arquivos pessoais pertencentes ao usuário
+podem ser alterados; links simbólicos e seus ancestrais são recusados, e arquivos
+globais/corporativos permanecem intactos. ZDOTDIR externo ao HOME é aceito em
+diretório pessoal pertencente ao usuário. Startup que encerra o shell ou impede o bloco de executar é
+reportado para revisão, sem acrescentar outro bloco gerenciado na reinstalação.
+
+Para atualizar a CLI instalada no Ubuntu, na cópia da versão desejada:
+
+```bash
+./install.sh
+# Revise os previews e confirme os arquivos propostos; depois abra outro terminal.
+config-workplace --version
+bash -lc 'command -v config-workplace'
+bash -ic 'command -v config-workplace'
+```
+
+O clone pode ser removido após a instalação; os blocos de PATH são autônomos.
+Teste específico, com HOME isolado: `/bin/bash tests/path-startup.sh` (os casos
+Zsh exigem o binário Zsh; sua ausência é sinalizada como SKIP).
+
 ### Inicializar e validar dotfiles
 
 Depois de instalar a CLI, com Git existente e acesso HTTPS à origem aprovada:

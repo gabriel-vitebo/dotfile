@@ -4,7 +4,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 sandbox=$(mktemp -d "$root/tests/.bootstrap.XXXXXX")
 trap 'rm -rf "$sandbox"' EXIT
 export HOME="$sandbox/home with spaces"
-export SHELL=/bin/zsh
+export SHELL=/bin/bash
 unset ZDOTDIR
 mkdir -p "$HOME" "$sandbox/source" "$sandbox/elsewhere"
 cp -R "$root/bin" "$root/lib" "$root/modules" "$root/platforms" "$root/manifests" "$root/install.sh" "$sandbox/source/"
@@ -58,23 +58,24 @@ config-workplace --version | grep -q '0.2.2'
 cp "$sandbox/cli.saved" "$source_dir/lib/cli.sh"
 pass 'falha após substituição restaura instalação anterior'
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
-printf '# configuração pessoal\n' > "$HOME/.zprofile"
+printf '# configuração pessoal\n' > "$HOME/.profile"
 printf 'n\n' | /bin/bash "$source_dir/install.sh" > "$sandbox/output"
-[ "$(cat "$HOME/.zprofile")" = '# configuração pessoal' ]
+[ "$(cat "$HOME/.profile")" = '# configuração pessoal' ]
 pass 'recusa de alteração do PATH'
-printf 's\n' | /bin/bash "$source_dir/install.sh" > "$sandbox/output"
-[ "$(grep -c 'export PATH=' "$HOME/.zprofile")" -eq 1 ]
+printf 's\ns\n' | /bin/bash "$source_dir/install.sh" > "$sandbox/output"
+[ "$(grep -c 'export PATH=' "$HOME/.profile")" -eq 1 ]
 found=0
-for file in "$HOME"/.zprofile.config-workplace-backup.*; do
+for file in "$HOME"/.profile.config-workplace-backup.*; do
     [ "$(cat "$file")" = '# configuração pessoal' ]; found=1
 done
 [ "$found" -eq 1 ]
 install_cli
-[ "$(grep -c 'export PATH=' "$HOME/.zprofile")" -eq 1 ]
+[ "$(grep -c 'export PATH=' "$HOME/.profile")" -eq 1 ]
 pass 'PATH com backup e sem duplicações'
-/bin/bash -c '. "$HOME/.zprofile"; cd /; config-workplace --help' >/dev/null
+/bin/bash -c '. "$HOME/.profile"; cd /; config-workplace --help' >/dev/null
 pass 'comando acessível pelo PATH configurado'
 export SHELL=/bin/bash
+rm "$HOME/.profile"
 printf '# bash profile\n' > "$HOME/.bash_profile"
 printf 's\n' | /bin/bash "$source_dir/install.sh" > "$sandbox/output"
 grep -q 'export PATH=' "$HOME/.bash_profile"
@@ -91,6 +92,8 @@ printf 's\nn\n' | /bin/bash "$source_dir/install.sh" > "$sandbox/output"
 pass 'substituição autorizada de comando desconhecido'
 rm -rf "$source_dir"
 (cd / && "$HOME/.local/bin/config-workplace" --help && "$HOME/.local/bin/config-workplace" --version && "$HOME/.local/bin/config-workplace" list) >/dev/null
+env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/bash -ic 'cd /; config-workplace --version' > "$sandbox/new-session" 2>/dev/null
+grep -q '0.2.2' "$sandbox/new-session"
 pass 'independência após exclusão definitiva da cópia original'
 # Execute the installed module after deleting its source; all tools/network mocked.
 mkdir -p "$sandbox/mock-bin" "$HOME/.nvm"

@@ -250,7 +250,7 @@ pass 'CLI ausente: recusa preserva estado e aprovação cria link ao aplicativo'
   cp "$HOME/.bash_profile" "$sandbox/profile-before"
   if cw_local_path <<< n; then exit 1; fi
   cmp "$HOME/.bash_profile" "$sandbox/profile-before"
-  cw_local_path <<< s
+  cw_local_path <<< $'s\ns'
   found=0
   for backup in "$HOME"/.bash_profile.config-workplace-backup.*; do
     cmp "$backup" "$sandbox/profile-before"; found=1
