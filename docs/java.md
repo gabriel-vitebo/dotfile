@@ -74,8 +74,9 @@ no SDKMAN!. Seleções existentes não são substituídas. JAVA_HOME/PATH tempor
 usados na validação não modificam o shell chamador. SDKMAN_CANDIDATES_DIR customizado
 não é suportado para instalações nesta etapa.
 
-A integração de inicialização permanece **manual e explícita**, como no módulo
-NVM: ao terminar, o comando imprime as linhas com o SDKMAN_DIR real para revisão.
+A integração de inicialização permanece **manual e explícita**: ao terminar,
+o comando imprime as linhas com o SDKMAN_DIR real para revisão.
+Ao contrário do NVM em `initial dev`, Java não propõe escrita automática no startup.
 Carregar esse init nas novas sessões ativa as seleções do SDKMAN! e pode definir
 JAVA_HOME. Revise a precedência com outras instalações antes de acrescentá-lo.
 Sem essa integração, os binários continuam acessíveis por caminho absoluto em

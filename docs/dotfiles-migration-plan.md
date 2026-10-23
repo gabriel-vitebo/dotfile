@@ -2,7 +2,13 @@
 
 Data da auditoria: 2026-10-22. Base inspecionada: commit `45ceaeb`, árvore inicialmente sem alterações. O nome público atual é `config-workplace`; o diretório local se chama `config-wrokplace`. Nenhum deles será renomeado nesta fase.
 
-**Auditoria original de planejamento; progresso da implementação registrado na seção 13.** Foram inventariados os 48 arquivos rastreados e examinados código, testes, manifestos, capturas e documentação. Não foram executados bootstrap, módulos, instaladores, autenticação ou configurações pessoais. Java permanece congelado até a conclusão da migração.
+> **Registro histórico:** as seções 1–12 descrevem propostas e o estado anterior à migração;
+> as seções seguintes registram entregas sucessivas, não pendências atuais. Para uso,
+> consulte o [README](../README.md), o [contrato de dotfiles](dotfiles.md) e a
+> [auditoria atual](dotfiles-sync-audit.md#auditoria-geral-do-repositorio--2026-10-22).
+> Materialização, restore, flags separadas de sync e Chezmoi não foram implementados.
+
+**Auditoria original de planejamento; progresso da implementação registrado a partir da seção 13.** Foram inventariados os 48 arquivos rastreados e examinados código, testes, manifestos, capturas e documentação. Não foram executados bootstrap, módulos, instaladores, autenticação ou configurações pessoais. Java permanece congelado até a conclusão da migração.
 
 ## 1. Diagnóstico
 
@@ -617,3 +623,49 @@ phase-2.2 (27) e Java (27): **185 grupos aprovados**. Sintaxe Bash e
 `git diff --check` aprovados. A ordem de fallback de `stat` foi corrigida
 para GNU/BSD, com repetição das suítes de dotfiles após a alteração.
 Todas as operações remotas da suíte de sync foram direcionadas a remotes locais.
+
+
+## 18. Requisitos históricos preservados do README original
+
+A tabela abaixo preserva os IDs das decisões originais. É um contrato de intenção,
+não uma declaração de implementação: monitor, notificações, recusa persistente e
+comandos globais continuam ausentes. RN-001/RN-024 distinguem agora o clone
+descartável do checkout permanente; este último é necessário aos vínculos ativos.
+RN-018 já possui adaptadores Ubuntu/macOS. RN-008 não implica seleção de arquivos
+individual no sync atual. O estado efetivo está no README e no relatório de auditoria.
+
+| ID | Regra | Critério de aceitação |
+| --- | --- | --- |
+| RN-001 | Instalação independente do clone | Excluir clone não quebra nenhum recurso instalado |
+| RN-002 | Reexecução idempotente | Rodar módulo duas vezes não duplica nem corrompe instalação |
+| RN-003 | `initial dev` é o núcleo | Instala essenciais sem Java ou Docker obrigatórios |
+| RN-004 | Módulos opcionais independentes | `java`, `docker` e `terminal` podem ser executados separadamente |
+| RN-005 | Detectar antes de instalar, em todos os módulos | Existente, funcional e compatível = SKIP independentemente da origem; divergências exigem autorização; nunca migrar só para padronizar gerenciador |
+| RN-006 | Aprovação obrigatória | Monitor não altera o projeto sem autorização |
+| RN-007 | Rejeição preserva o local | Recusar não modifica repositório nem desfaz configuração local |
+| RN-008 | Revisão granular | Alterações independentes podem ter decisões diferentes |
+| RN-009 | Sem alertas repetidos | Recusas idênticas ficam registradas em estado local |
+| RN-010 | Commit somente do aprovado | Staging seletivo e validação antes de commitar |
+| RN-011 | Push separado por padrão | Nenhum push automático sem configuração explícita |
+| RN-012 | Conflitos não destrutivos | Nunca sobrescrever alterações locais silenciosamente |
+| RN-013 | Monitor configurável | Verificação periódica, sem modificar ferramentas por conta própria |
+| RN-014 | Novas instalações atualizadas | Resolver versão estável/LTS vigente e compatível |
+| RN-015 | Atualização existente controlada | Sem upgrade de major automático por padrão |
+| RN-016 | Segurança dos segredos | Bloquear publicação de material suspeito e não versionar segredos |
+| RN-017 | Fonte de verdade aprovada | Git contém apenas configurações aceitas, não espelho irrestrito da máquina |
+| RN-018 | Portabilidade progressiva | Ubuntu suportado inicialmente; outros sistemas por adaptadores |
+| RN-019 | Falhas rastreáveis | Logs claros e relatório de instalado/ignorado/falhou |
+| RN-020 | Configuração manual possível | Arquivos, templates e instruções documentados |
+| RN-021 | Instalação sem runtime prévio | Bootstrap não depende de Node.js/Java |
+| RN-022 | Configurações específicas locais | Caminhos e dados de máquina não vazam para dotfiles portáteis |
+| RN-023 | Captura não implica reprodutibilidade | Detectar pacote não equivale a saber reinstalá-lo |
+| RN-024 | Remoção segura do gerenciador | Excluir CLI/monitor não desinstala nem quebra ferramentas |
+
+
+O desenho anterior também propunha monitor via `systemd --user` a cada seis horas,
+notificações, ignorados locais e revisão granular de inventários/extensões. Essas
+propostas ficam para avaliação após o MVP manual; nenhum timer ou monitor existe.
+Continuam as decisões de ambiente pessoal sem perfis frontend/backend/fullstack
+ou `--work`, módulos opcionais independentes e credenciais fora do versionamento.
+Chezmoi/Bats/YAML eram alternativas de planejamento; a implementação usa Bash,
+manifestos próprios e suítes shell. Windows fica fora das plataformas-alvo atuais.

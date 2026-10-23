@@ -1,4 +1,11 @@
-# Captura para o módulo terminal (2026-10-20)
+# Terminal — comportamento e registros de implementação
+
+> Os relatos datados abaixo são históricos. O contrato atual está no
+> [README](../README.md#terminal) e nas seções de bootstrap/finalização deste
+> documento. Integração com Chezmoi/profiles foi proposta, não implementada.
+> Para resultados desta auditoria, consulte o [relatório atual](dotfiles-sync-audit.md#auditoria-geral-do-repositorio--2026-10-22).
+
+## Captura para o módulo terminal (2026-10-20)
 
 Leitura de `.zshrc`, `.zprofile`, customizações e código local do Oh My Zsh,
 comparada aos artefatos em `dotfiles/common/zsh` e inventários existentes.
@@ -32,7 +39,8 @@ sem executar esse instalador.
 Validação manual sugerida em VM Ubuntu descartável: executar dry-run, aprovar
 instalação, repetir para verificar SKIP, remover clone e CLI, abrir Zsh e conferir
 `echo $ZSH_THEME`, `alias gst`, `vim --version` e prompt dentro/fora de Git.
-Próxima etapa: concluir essa aceitação real antes de integrar chezmoi/profiles.
+A proposta histórica de integrar Chezmoi/profiles foi substituída pelo gerenciador
+Bash de dotfiles; aceitação real e importação de profiles continuam pendentes.
 
 ## Bootstrap de máquinas novas
 

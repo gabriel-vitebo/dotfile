@@ -1,5 +1,9 @@
 # Gerenciamento de dotfiles — Fases 5 e 6
 
+> Contrato atual; as execuções macOS citadas ao longo do texto são registros das
+> entregas anteriores. A [auditoria de 22/10/2026](dotfiles-sync-audit.md#auditoria-geral-do-repositorio--2026-10-22)
+> acrescenta execução das 11 suítes no Ubuntu, sem instalações reais.
+
 A CLI Bash 3.2 permite selecionar configurações independentes. `workspace` e
 `config-workplace` aceitam os mesmos comandos. Não instala programas, não usa
 Node e não importa configurações do HOME. `init`, após confirmação, e `sync` acessam a origem Git aprovada; os demais
@@ -312,6 +316,12 @@ Nesses exemplos, defina `repo` como o caminho permanente efetivamente usado.
 Não use `-C` no clone descartável nem opções que descartem alterações.
 Uma branch que diverge do remoto exige resolução manual, não troca automática.
 
+O pin é anterior aos commits atuais de código/documentação. Se main da origem
+aprovada incluir esses commits, o sync bloqueia o avanço por conter caminhos fora
+da allowlist. Criar main no pin não resolve essa restrição. A auditoria confirmou
+esses caminhos no histórico local, sem consultar a main remota; atualizar o projeto
+exige fluxo Git manual revisado e reinstalação da CLI, separado do sync de preferências.
+
 Para criar commits, prepare manualmente `user.name` e `user.email` **locais ao
 checkout**, com identidade não corporativa aprovada. Não se importa a identidade
 global, e a CLI não executa comandos de configuração por você.
@@ -378,14 +388,19 @@ corporativos. Rejeita também conteúdo não ASCII, controles e arquivos acima d
 256 KiB: são restrições conservadoras desta versão. Pode produzir falsos positivos
 ou não identificar dados sensíveis inéditos. **Revisão humana é obrigatória**:
 aprovar significa revisar também se os dados são pessoais portáteis e não
-corporativos. Não existe `--force` ou bypass de secrets. Resolva suspeitas em
+corporativos. O scanner não valida sintaxe ou semântica dos conteúdos shell/Git/JSON. Um arquivo
+permitido pode passar pelos padrões e ainda ser inválido ou executar código
+indesejado quando carregado; HTTPS/fsck não certificam seu comportamento.
+Não existe `--force` ou bypass de secrets. Resolva suspeitas em
 área privada e reexecute; nunca cole credenciais em logs ou mensagens de suporte.
 
 O push usa HTTPS, hash/refspec explícitos e nunca force. Credential helpers e
 configurações pessoais não são executados. Após aprovação do push, o próprio Git
 pode solicitar usuário/token diretamente no terminal, sem persistir credenciais.
 Sem terminal/autenticação válida, a operação falha preservando o commit. Consultas
-não interativas não autenticam repositórios privados. Erros brutos de transporte
+não interativas não autenticam repositórios privados. Como a consulta antecede
+qualquer commit/push, poder autenticar o push não basta para tornar o fluxo
+utilizável numa origem privada. `gh auth login` não resolve essa consulta isolada. Erros brutos de transporte
 não são impressos, pois podem conter informações sensíveis. Não há login automático,
 instalação de ferramentas ou mudança de configuração de credenciais.
 
@@ -431,3 +446,18 @@ real; nenhum push vai ao GitHub. Execução nativa desta entrega: macOS/Bash 3.2
 Os contratos Ubuntu são simulados; validação nativa Ubuntu, autenticação real e
 aceitação em máquinas descartáveis permanecem pendentes. Nenhuma próxima fase,
 sincronização em background, cron ou instalação foi iniciada.
+
+
+## Diferenças entre validações locais
+
+`link`/`unlink`/`status` verificam caminhos e vínculos, mas não exigem origem,
+branch, integridade Git ou a mesma recusa de temporários de init/doctor/sync.
+O nome “checkout permanente” descreve o destino que o usuário deve escolher;
+não é garantia produzida somente por um link bem-sucedido. Valide o checkout
+com doctor antes de depender dele após apagar o clone inicial.
+
+`status` não compara os conteúdos da fonte com HEAD; um vínculo `correct` pode
+apontar a arquivo editado. Já init/doctor exigem as três fontes iguais a HEAD,
+portanto uma edição intencional pode causar pendência até ser revisada.
+Link/unlink apenas anunciam journals incompletos e podem continuar;
+init/doctor/sync os bloqueiam. Recuperação manual deve considerar essa diferença.

@@ -1,5 +1,11 @@
 # Inventário e captura inicial do macOS
 
+> **Registro histórico de 20/10/2026.** A ausência de `.git`, CLI e instaladores
+> descreve aquela captura. Hoje há CLI, módulos Ubuntu/macOS e dotfiles seletivos;
+> consulte o [README](../README.md) e o [contrato atual](dotfiles.md). As recomendações
+> de cópia abaixo antecedem os links para checkout permanente, que continuam
+> independentes do clone inicial. Captura não comprova compatibilidade em execução.
+
 Data: 2026-10-20. Escopo: descoberta e captura seletiva, sem implementação da
 CLI, do módulo `terminal` ou de instaladores. O README original foi preservado.
 O diretório de trabalho não tinha `.git`; não foi inicializado um repositório.

@@ -2,6 +2,8 @@
 
 Execute `config-workplace initial dev --dry-run` para verificar NVM, Node/npm,
 shell, integração e o bloco proposto. Execute sem `--dry-run` para aplicar.
+O dry-run evita escritas planejadas, mas consulta versões por HTTPS e a sondagem
+carrega `nvm.sh --no-use`; não isola efeitos próprios desse código de terceiros.
 A confirmação da integração do shell é separada da confirmação de instalações.
 Recusar essa confirmação não altera o startup. Instalações anteriormente
 aprovadas permanecem instaladas.
@@ -69,3 +71,8 @@ isolado e NVM/Node simulados, sem instalar pacotes. O teste de startup executa
 uma sessão Bash interativa real; também executa Zsh quando disponível. Execute
 com Bash 3.2 e Bash moderno nas respectivas plataformas. Uma aceitação com
 NVM real em Ubuntu/macOS continua necessária para validar o ambiente completo.
+
+Resultados atuais e limitações de aceitação estão no
+[relatório de auditoria](dotfiles-sync-audit.md#auditoria-geral-do-repositorio--2026-10-22).
+A correção de PATH no bootstrap é separada da integração NVM; veja o
+[README](../README.md#path-em-novas-sessões).
